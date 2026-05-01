@@ -320,45 +320,46 @@ void AHeroPlayerController::UpdateHUDFromPawn()
         return;
     }
 
+    UHeroTeamComponent* Team = nullptr;
+
     if (AHeroDriveableVehiclePawn* VehiclePawn = Cast<AHeroDriveableVehiclePawn>(GetPawn()))
     {
-        // Function: Driving HUD shows vehicle data only in vehicle area, not in the weapon panel.
         HeroHUD->SetPlayerMode(EHeroPlayerMode::Vehicle);
-        HeroHUD->SetHealth(VehiclePawn->GetVehicleHealth(), VehiclePawn->GetMaxVehicleHealth());
         HeroHUD->SetVehicleHealth(VehiclePawn->GetVehicleHealth(), VehiclePawn->GetMaxVehicleHealth());
         HeroHUD->SetVehicleSpeed(VehiclePawn->GetSpeedKmh());
-        HeroHUD->SetWeaponName(FText::GetEmpty());
-        HeroHUD->SetAmmo(-1, -1);
-        HeroHUD->SetWeaponHeat(0.0f);
+        HeroHUD->SetWeaponName(FText::FromString(TEXT("VEHICLE")));
+        HeroHUD->SetAmmo(VehiclePawn->GetCurrentGear(), FMath::RoundToInt(VehiclePawn->GetEngineRpm()));
+        HeroHUD->SetReloading(false);
+        HeroHUD->SetWeaponHeat(VehiclePawn->GetVehicleTelemetry().SkidAmount);
+
+        if (AHeroCharacter* Driver = VehiclePawn->GetStoredDriver())
+        {
+            Team = Driver->GetTeamComponent();
+        }
+    }
+    else if (AHeroCharacter* Hero = Cast<AHeroCharacter>(GetPawn()))
+    {
+        UHeroHealthComponent* Health = Hero->GetHealthComponent();
+        UHeroWeaponComponent* Weapon = Hero->GetWeaponComponent();
+        UHeroTeamComponent* HeroTeam = Hero->GetTeamComponent();
+        Team = HeroTeam;
+
+        HeroHUD->SetPlayerMode(EHeroPlayerMode::Human);
+        if (Health)
+        {
+            HeroHUD->SetHealth(Health->GetHealth(), Health->GetMaxHealth());
+        }
+        if (Weapon)
+        {
+            HeroHUD->SetWeaponName(Weapon->GetWeaponName());
+            HeroHUD->SetAmmo(Weapon->GetAmmoInMagazine(), Weapon->GetReserveAmmo());
+            HeroHUD->SetReloading(Weapon->IsReloading());
+            HeroHUD->SetWeaponHeat(Weapon->GetWeaponHeat01());
+        }
+    }
+    else
+    {
         return;
-    }
-
-    AHeroCharacter* Hero = Cast<AHeroCharacter>(GetPawn());
-    if (!Hero)
-    {
-        return;
-    }
-
-    UHeroHealthComponent* Health = Hero->GetHealthComponent();
-    UHeroWeaponComponent* Weapon = Hero->GetWeaponComponent();
-    UHeroVehicleModeComponent* VehicleMode = Hero->GetVehicleModeComponent();
-    UHeroTeamComponent* Team = Hero->GetTeamComponent();
-
-    if (VehicleMode)
-    {
-        HeroHUD->SetPlayerMode(VehicleMode->GetPlayerMode());
-    }
-    if (Health)
-    {
-        HeroHUD->SetHealth(Health->GetHealth(), Health->GetMaxHealth());
-        HeroHUD->SetVehicleHealth(0.0f, 0.0f);
-    }
-    if (Weapon)
-    {
-        HeroHUD->SetWeaponName(Weapon->GetWeaponName());
-        HeroHUD->SetAmmo(Weapon->GetAmmoInMagazine(), Weapon->GetReserveAmmo());
-        HeroHUD->SetReloading(Weapon->IsReloading());
-        HeroHUD->SetWeaponHeat(Weapon->GetWeaponHeat01());
     }
 
     if (const AHeroGameModeBase* HeroGM = GetWorld() ? GetWorld()->GetAuthGameMode<AHeroGameModeBase>() : nullptr)

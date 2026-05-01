@@ -27,31 +27,24 @@ namespace
 
 TSharedRef<SWidget> UHeroHUDWidget::RebuildWidget()
 {
-    // Function: Build a clean gameplay HUD with no debug/comment-style objective banner in Sandbox.
     return SNew(SOverlay)
-
         + SOverlay::Slot()
-        .HAlign(HAlign_Center)
+        .HAlign(HAlign_Fill)
         .VAlign(VAlign_Top)
-        .Padding(0.0f, 24.0f, 0.0f, 0.0f)
         [
-            SAssignNew(ObjectiveText, STextBlock)
-            .Text(FText::GetEmpty())
-            .Font(HeroFont(20, TEXT("Bold")))
-            .ColorAndOpacity(FLinearColor::White)
+            SNew(SBorder)
+            .Padding(FMargin(26.0f, 14.0f))
+            .BorderBackgroundColor(FLinearColor(0.01f, 0.015f, 0.035f, 0.72f))
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                [SAssignNew(ModeText, STextBlock).Text(FText::FromString(TEXT(""))).Font(HeroFont(22, TEXT("Bold"))).ColorAndOpacity(AccentColor())]
+                + SHorizontalBox::Slot().FillWidth(1.0f).HAlign(HAlign_Center).VAlign(VAlign_Center)
+                [SAssignNew(ObjectiveText, STextBlock).Text(FText::FromString(TEXT("Objective inactive"))).Font(HeroFont(20, TEXT("Bold"))).ColorAndOpacity(FLinearColor::White)]
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                [SAssignNew(BotText, STextBlock).Text(FText::FromString(TEXT("BOTS 0/0"))).Font(HeroFont(18, TEXT("Bold"))).ColorAndOpacity(FLinearColor(0.9f, 0.95f, 1.0f, 1.0f))]
+            ]
         ]
-
-        + SOverlay::Slot()
-        .HAlign(HAlign_Right)
-        .VAlign(VAlign_Top)
-        .Padding(0.0f, 24.0f, 28.0f, 0.0f)
-        [
-            SAssignNew(BotText, STextBlock)
-            .Text(FText::GetEmpty())
-            .Font(HeroFont(18, TEXT("Bold")))
-            .ColorAndOpacity(FLinearColor(0.9f, 0.95f, 1.0f, 1.0f))
-        ]
-
         + SOverlay::Slot()
         .HAlign(HAlign_Center)
         .VAlign(VAlign_Center)
@@ -77,13 +70,12 @@ TSharedRef<SWidget> UHeroHUDWidget::RebuildWidget()
             + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center).Padding(0.0f, 76.0f, 0.0f, 0.0f)
             [
                 SAssignNew(DamageText, STextBlock)
-                .Text(FText::GetEmpty())
+                .Text(FText::FromString(TEXT("34")))
                 .Font(HeroFont(16, TEXT("Bold")))
                 .ColorAndOpacity(FLinearColor(1.0f, 0.82f, 0.32f, 1.0f))
                 .Visibility(EVisibility::Hidden)
             ]
         ]
-
         + SOverlay::Slot()
         .HAlign(HAlign_Left)
         .VAlign(VAlign_Bottom)
@@ -94,23 +86,10 @@ TSharedRef<SWidget> UHeroHUDWidget::RebuildWidget()
             .BorderBackgroundColor(PanelColor())
             [
                 SNew(SVerticalBox)
-                + SVerticalBox::Slot().AutoHeight()
-                [
-                    SAssignNew(HealthText, STextBlock)
-                    .Text(FText::FromString(TEXT("HEALTH 200 / 200")))
-                    .Font(HeroFont(28, TEXT("Bold")))
-                    .ColorAndOpacity(FLinearColor::White)
-                ]
-                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 6.0f, 0.0f, 0.0f)
-                [
-                    SAssignNew(VehicleText, STextBlock)
-                    .Text(FText::GetEmpty())
-                    .Font(HeroFont(16, TEXT("Bold")))
-                    .ColorAndOpacity(FLinearColor(0.75f, 0.86f, 1.0f, 1.0f))
-                ]
+                + SVerticalBox::Slot().AutoHeight()[SAssignNew(HealthText, STextBlock).Text(FText::FromString(TEXT("HEALTH 200 / 200"))).Font(HeroFont(28, TEXT("Bold"))).ColorAndOpacity(FLinearColor::White)]
+                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 6.0f, 0.0f, 0.0f)[SAssignNew(VehicleText, STextBlock).Text(FText::FromString(TEXT("Q: Vehicle Mode | E: Interact | Ctrl/C: Crouch"))).Font(HeroFont(14)).ColorAndOpacity(FLinearColor(0.75f, 0.86f, 1.0f, 1.0f))]
             ]
         ]
-
         + SOverlay::Slot()
         .HAlign(HAlign_Right)
         .VAlign(VAlign_Bottom)
@@ -121,34 +100,15 @@ TSharedRef<SWidget> UHeroHUDWidget::RebuildWidget()
             .BorderBackgroundColor(PanelColor())
             [
                 SNew(SVerticalBox)
-                + SVerticalBox::Slot().AutoHeight()
-                [
-                    SAssignNew(WeaponText, STextBlock)
-                    .Text(FText::FromString(TEXT("PULSE RIFLE")))
-                    .Font(HeroFont(19, TEXT("Bold")))
-                    .ColorAndOpacity(AccentColor())
-                ]
-                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 8.0f, 0.0f, 0.0f)
-                [
-                    SAssignNew(AmmoText, STextBlock)
-                    .Text(FText::FromString(TEXT("30 / INF")))
-                    .Font(HeroFont(34, TEXT("Bold")))
-                    .ColorAndOpacity(FLinearColor::White)
-                ]
-                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 4.0f, 0.0f, 0.0f)
-                [
-                    SAssignNew(HeatText, STextBlock)
-                    .Text(FText::GetEmpty())
-                    .Font(HeroFont(13))
-                    .ColorAndOpacity(FLinearColor(0.74f, 0.84f, 0.95f, 1.0f))
-                ]
+                + SVerticalBox::Slot().AutoHeight()[SAssignNew(WeaponText, STextBlock).Text(FText::FromString(TEXT("PULSE RIFLE"))).Font(HeroFont(19, TEXT("Bold"))).ColorAndOpacity(AccentColor())]
+                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 8.0f, 0.0f, 0.0f)[SAssignNew(AmmoText, STextBlock).Text(FText::FromString(TEXT("30 / 120"))).Font(HeroFont(34, TEXT("Bold"))).ColorAndOpacity(FLinearColor::White)]
+                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 4.0f, 0.0f, 0.0f)[SAssignNew(HeatText, STextBlock).Text(FText::FromString(TEXT("HEAT 0%"))).Font(HeroFont(13)).ColorAndOpacity(FLinearColor(0.74f, 0.84f, 0.95f, 1.0f))]
             ]
         ];
 }
 
 void UHeroHUDWidget::NativeTick(const FGeometry& MyGeometry, const float InDeltaTime)
 {
-    // Function: Fade hit marker and floating damage text after hits.
     Super::NativeTick(MyGeometry, InDeltaTime);
 
     HitMarkerTimer = FMath::Max(0.0f, HitMarkerTimer - InDeltaTime);
@@ -166,14 +126,12 @@ void UHeroHUDWidget::NativeTick(const FGeometry& MyGeometry, const float InDelta
 
 void UHeroHUDWidget::SetPlayerMode(const EHeroPlayerMode InMode)
 {
-    // Function: Switch HUD presentation between infantry and driving.
     PlayerMode = InMode;
     RefreshModeText();
 }
 
 void UHeroHUDWidget::SetHealth(const float Health, const float MaxHealth)
 {
-    // Function: Display current hero or vehicle health in the lower-left panel.
     if (HealthText)
     {
         const float Ratio = MaxHealth > KINDA_SMALL_NUMBER ? Health / MaxHealth : 0.0f;
@@ -184,26 +142,15 @@ void UHeroHUDWidget::SetHealth(const float Health, const float MaxHealth)
 
 void UHeroHUDWidget::SetAmmo(const int32 AmmoInMagazine, const int32 ReserveAmmo)
 {
-    // Function: Show infantry weapon ammo only; vehicle mode must not overwrite weapon UI with car data.
-    if (!AmmoText)
+    if (AmmoText)
     {
-        return;
+        AmmoText->SetText(FText::FromString(FString::Printf(TEXT("%d / %d"), AmmoInMagazine, ReserveAmmo)));
     }
-
-    if (PlayerMode == EHeroPlayerMode::Vehicle || AmmoInMagazine < 0)
-    {
-        AmmoText->SetText(FText::GetEmpty());
-        return;
-    }
-
-    const FString ReserveText = ReserveAmmo >= 999000 ? TEXT("INF") : FString::FromInt(ReserveAmmo);
-    AmmoText->SetText(FText::FromString(FString::Printf(TEXT("%d / %s"), AmmoInMagazine, *ReserveText)));
 }
 
 void UHeroHUDWidget::SetReloading(const bool bReloading)
 {
-    // Function: Replace ammo display with reload state only while infantry weapon reloads.
-    if (AmmoText && bReloading && PlayerMode != EHeroPlayerMode::Vehicle)
+    if (AmmoText && bReloading)
     {
         AmmoText->SetText(FText::FromString(TEXT("RELOADING")));
     }
@@ -211,60 +158,38 @@ void UHeroHUDWidget::SetReloading(const bool bReloading)
 
 void UHeroHUDWidget::SetWeaponName(const FText& WeaponName)
 {
-    // Function: Show infantry weapon name only; driving uses the vehicle info area instead.
     if (WeaponText)
     {
-        WeaponText->SetText(PlayerMode == EHeroPlayerMode::Vehicle ? FText::GetEmpty() : WeaponName);
+        WeaponText->SetText(WeaponName);
     }
 }
 
 void UHeroHUDWidget::SetWeaponHeat(const float Heat01)
 {
-    // Function: Hide heat when it is not meaningful; do not show HEAT 0% as HUD noise.
-    if (!HeatText)
+    if (HeatText)
     {
-        return;
+        HeatText->SetText(FText::FromString(FString::Printf(TEXT("HEAT %.0f%%"), FMath::Clamp(Heat01, 0.0f, 1.0f) * 100.0f)));
     }
-
-    if (PlayerMode == EHeroPlayerMode::Vehicle || Heat01 <= KINDA_SMALL_NUMBER)
-    {
-        HeatText->SetText(FText::GetEmpty());
-        return;
-    }
-
-    HeatText->SetText(FText::FromString(FString::Printf(TEXT("HEAT %.0f%%"), FMath::Clamp(Heat01, 0.0f, 1.0f) * 100.0f)));
 }
 
 void UHeroHUDWidget::SetVehicleHealth(const float Health, const float MaxHealth)
 {
-    // Function: Vehicle armor belongs to the vehicle area, not to the weapon panel.
-    if (!VehicleText)
+    if (VehicleText && PlayerMode != EHeroPlayerMode::Vehicle)
     {
-        return;
-    }
-
-    if (PlayerMode == EHeroPlayerMode::Vehicle && MaxHealth > KINDA_SMALL_NUMBER)
-    {
-        VehicleText->SetText(FText::FromString(FString::Printf(TEXT("CAR ARMOR %.0f / %.0f"), Health, MaxHealth)));
-    }
-    else if (PlayerMode != EHeroPlayerMode::Vehicle)
-    {
-        VehicleText->SetText(FText::GetEmpty());
+        VehicleText->SetText(FText::FromString(FString::Printf(TEXT("Q: Vehicle Mode | Armor %.0f / %.0f | Ctrl/C: Crouch"), Health, MaxHealth)));
     }
 }
 
 void UHeroHUDWidget::SetVehicleSpeed(const float SpeedKmh)
 {
-    // Function: Show speed only when actually driving a vehicle pawn.
     if (VehicleText && PlayerMode == EHeroPlayerMode::Vehicle)
     {
-        VehicleText->SetText(FText::FromString(FString::Printf(TEXT("CAR %.0f km/h"), SpeedKmh)));
+        VehicleText->SetText(FText::FromString(FString::Printf(TEXT("CAR %.0f km/h | Q/E EXIT | SPACE HANDBRAKE"), SpeedKmh)));
     }
 }
 
 void UHeroHUDWidget::SetCrosshairVisible(const bool bVisible)
 {
-    // Function: Toggle crosshair visibility for menus/death/special states.
     if (CrosshairText)
     {
         CrosshairText->SetVisibility(bVisible ? EVisibility::Visible : EVisibility::Hidden);
@@ -273,7 +198,6 @@ void UHeroHUDWidget::SetCrosshairVisible(const bool bVisible)
 
 void UHeroHUDWidget::SetObjectiveStatus(const EHeroGameModeType GameMode, const EHeroTeam Team, const EHeroObjectiveState ObjectiveState, const float ObjectiveProgress01, const bool bContested)
 {
-    // Function: Display objective status only for real objective modes.
     if (ObjectiveText)
     {
         ObjectiveText->SetText(FText::FromString(BuildObjectiveString(GameMode, Team, ObjectiveState, ObjectiveProgress01, bContested)));
@@ -282,16 +206,14 @@ void UHeroHUDWidget::SetObjectiveStatus(const EHeroGameModeType GameMode, const 
 
 void UHeroHUDWidget::SetBotStatus(const int32 AliveBots, const int32 TotalBots)
 {
-    // Function: Hide bot count in modes where no bots exist.
     if (BotText)
     {
-        BotText->SetText(TotalBots > 0 ? FText::FromString(FString::Printf(TEXT("BOTS %d/%d"), AliveBots, TotalBots)) : FText::GetEmpty());
+        BotText->SetText(FText::FromString(FString::Printf(TEXT("BOTS %d/%d"), AliveBots, TotalBots)));
     }
 }
 
 void UHeroHUDWidget::NotifyHitMarker(const float DamageAmount, const bool bKilled)
 {
-    // Function: Show a short hit marker and damage number after successful weapon hits.
     HitMarkerTimer = bKilled ? 0.55f : 0.28f;
     DamageTextTimer = 0.55f;
 
@@ -307,29 +229,21 @@ void UHeroHUDWidget::NotifyHitMarker(const float DamageAmount, const bool bKille
 
 void UHeroHUDWidget::RefreshModeText()
 {
-    // Function: Keep mode HUD clean; only show a compact driving state while in a vehicle.
     if (ModeText)
     {
-        ModeText->SetText(PlayerMode == EHeroPlayerMode::Vehicle ? FText::FromString(TEXT("DRIVING")) : FText::GetEmpty());
+        ModeText->SetText(PlayerMode == EHeroPlayerMode::Vehicle ? FText::FromString(TEXT("DRIVING")) : FText::FromString(TEXT("")));
     }
 
     if (CrosshairText)
     {
         CrosshairText->SetText(FText::FromString(TEXT("+")));
     }
-
-    if (PlayerMode == EHeroPlayerMode::Vehicle)
-    {
-        if (WeaponText) { WeaponText->SetText(FText::GetEmpty()); }
-        if (AmmoText) { AmmoText->SetText(FText::GetEmpty()); }
-        if (HeatText) { HeatText->SetText(FText::GetEmpty()); }
-    }
 }
 
 FString UHeroHUDWidget::BuildObjectiveString(const EHeroGameModeType GameMode, const EHeroTeam Team, const EHeroObjectiveState ObjectiveState, const float ObjectiveProgress01, const bool bContested) const
 {
-    // Function: Main/Sandbox should not show objective/debug placeholder text.
-    if (GameMode == EHeroGameModeType::Sandbox || Team == EHeroTeam::None || ObjectiveState == EHeroObjectiveState::Inactive)
+    // 기능: Sandbox/None 상태에서는 상단에 SANDBOX | NO TEAM | READY 같은 디버그 문구를 표시하지 않는다.
+    if (GameMode == EHeroGameModeType::Sandbox && Team == EHeroTeam::None)
     {
         return FString();
     }
@@ -337,6 +251,6 @@ FString UHeroHUDWidget::BuildObjectiveString(const EHeroGameModeType GameMode, c
     const TCHAR* ModeName = GameMode == EHeroGameModeType::Escort ? TEXT("ESCORT") : GameMode == EHeroGameModeType::Control ? TEXT("CONTROL") : GameMode == EHeroGameModeType::TeamDeathmatch ? TEXT("TDM") : TEXT("");
     const TCHAR* TeamName = Team == EHeroTeam::TeamA ? TEXT("TEAM A") : Team == EHeroTeam::TeamB ? TEXT("TEAM B") : TEXT("");
     const TCHAR* StateName = bContested || ObjectiveState == EHeroObjectiveState::Contested ? TEXT("CONTESTED") : ObjectiveState == EHeroObjectiveState::Captured ? TEXT("CAPTURED") : ObjectiveState == EHeroObjectiveState::Completed ? TEXT("COMPLETE") : ObjectiveState == EHeroObjectiveState::Active ? TEXT("ACTIVE") : TEXT("");
-
-    return FString::Printf(TEXT("%s | %s | %s | %.0f%%"), ModeName, TeamName, StateName, FMath::Clamp(ObjectiveProgress01, 0.0f, 1.0f) * 100.0f);
+    return FString::Printf(TEXT("%s  |  %s  |  %s  |  %.0f%%"), ModeName, TeamName, StateName, FMath::Clamp(ObjectiveProgress01, 0.0f, 1.0f) * 100.0f);
 }
+

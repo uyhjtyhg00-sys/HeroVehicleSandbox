@@ -47,6 +47,7 @@ void AHeroCharacter::BeginPlay()
     LoadAimSettings();
     HealthComponent->OnDeath.AddDynamic(this, &AHeroCharacter::HandleDeath);
     VehicleModeComponent->OnPlayerModeChanged.AddDynamic(this, &AHeroCharacter::ApplyModeToComponents);
+    VehicleModeComponent->ExitVehicleMode();
     ApplyModeToComponents(EHeroPlayerMode::Human);
 }
 
@@ -63,7 +64,7 @@ void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompo
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-    // Function: Bind Overwatch-style hero movement, look, combat, interact, melee, and dev vehicle spawn.
+    // Function: Bind hero movement, combat, interact, melee, and dev-only vehicle spawn.
     PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AHeroCharacter::MoveForward);
     PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AHeroCharacter::MoveRight);
     PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AHeroCharacter::Turn);
@@ -155,9 +156,7 @@ void AHeroCharacter::MoveForward(const float Value)
 {
     if (Value != 0.0f && !HealthComponent->IsDead())
     {
-        // Function: Overwatch baseline is 5.5 m/s forward, with backward movement at 90% input scale.
-        const float DirectionScale = Value < 0.0f ? 0.90f : 1.0f;
-        AddMovementInput(GetActorForwardVector(), Value * DirectionScale * GetAirMovementScale());
+        AddMovementInput(GetActorForwardVector(), Value * GetAirMovementScale());
     }
 }
 
@@ -250,14 +249,14 @@ void AHeroCharacter::StopHeroCrouch()
 // 기능: 가짜 속도 모드 대신 근처 차량 탑승/스폰 탑승을 실행한다.
 void AHeroCharacter::ToggleVehicleMode()
 {
-    // Function: Legacy Q/E vehicle-mode path is intentionally harmless. Real interact is on G.
+    // Function: Legacy vehicle-mode input path kept harmless. Real interaction is on G.
     Interact();
 }
 
 // 기능: 상호작용 키로도 실제 차량 탑승을 실행한다.
 void AHeroCharacter::Interact()
 {
-    // Function: G enters the nearest existing real vehicle only.
+    // Function: G is the single gameplay interaction key. It enters the nearest real vehicle only.
     EnterNearestOrSpawnedVehicle();
 }
 
@@ -269,16 +268,14 @@ void AHeroCharacter::HandleDeath()
     DisableInput(nullptr);
 }
 
-// 기능: CharacterMovement의 지상/공중/앉기 이동값을 설정한다.
+// 기능: CharacterMovement를 Overwatch식 즉시 가속/즉시 정지에 가깝게 설정한다.
 void AHeroCharacter::ConfigureCharacterMovement()
 {
     UCharacterMovementComponent* Movement = GetCharacterMovement();
-
-    // Function: Overwatch-like base movement. UE uses centimeters, so 5.5 m/s is 550 cm/s.
     Movement->MaxWalkSpeed = HumanWalkSpeed;
     Movement->MaxWalkSpeedCrouched = CrouchWalkSpeed;
 
-    // Function: Remove ground inertia. Press/release and left/right swaps should respond immediately.
+    // Ground movement: almost no inertia. Start/stop must feel immediate.
     Movement->MaxAcceleration = 100000.0f;
     Movement->BrakingDecelerationWalking = 100000.0f;
     Movement->GroundFriction = 70.0f;
@@ -287,19 +284,21 @@ void AHeroCharacter::ConfigureCharacterMovement()
     Movement->bUseSeparateBrakingFriction = true;
     Movement->MinAnalogWalkSpeed = 0.0f;
 
-    // Function: Jump height is kept, air speed is preserved, but mid-air direction changes are heavily limited.
-    Movement->JumpZVelocity = 650.0f;
-    Movement->GravityScale = 2.05f;
-    Movement->AirControl = 0.18f;
-    Movement->AirControlBoostMultiplier = 0.20f;
-    Movement->AirControlBoostVelocityThreshold = 65.0f;
-    Movement->FallingLateralFriction = 0.0f;
-    Movement->BrakingDecelerationFalling = 0.0f;
+    // Air movement: still controllable, but weaker than grounded control.
+    // Function: Fast-fall tuning keeps jump responsive but reduces floaty hang time.
+    Movement->JumpZVelocity = 585.0f;
+    Movement->GravityScale = 2.25f;
+    Movement->AirControl = 0.42f;
+    Movement->AirControlBoostMultiplier = 0.65f;
+    Movement->AirControlBoostVelocityThreshold = 35.0f;
+    Movement->FallingLateralFriction = 0.12f;
+    Movement->BrakingDecelerationFalling = 120.0f;
 
     Movement->bOrientRotationToMovement = false;
     Movement->NavAgentProps.bCanCrouch = true;
     GetCapsuleComponent()->SetCanEverAffectNavigation(false);
 }
+
 
 // 기능: 저장 슬롯에서 조준 설정을 읽어온다.
 void AHeroCharacter::LoadAimSettings()
@@ -354,8 +353,6 @@ float AHeroCharacter::GetAirMovementScale() const
 void AHeroCharacter::ApplyModeToComponents(const EHeroPlayerMode NewMode)
 {
     (void)NewMode;
-
-    // Function: Disable old fake vehicle speed mode. Real driving is handled by AHeroDriveableVehiclePawn.
     WeaponComponent->SetPlayerMode(EHeroPlayerMode::Human);
     GetCharacterMovement()->MaxWalkSpeed = HumanWalkSpeed;
     GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchWalkSpeed;
@@ -426,7 +423,8 @@ void AHeroCharacter::EnterNearestOrSpawnedVehicle()
         return;
     }
 
-    // Function: Gameplay interaction may only enter a nearby existing vehicle.
+    // Function: Interaction may only enter an existing nearby vehicle.
+    // It must not spawn a new car by itself.
     AHeroDriveableVehiclePawn* Vehicle = FindNearestDriveableVehicle();
     if (Vehicle)
     {
@@ -442,11 +440,11 @@ void AHeroCharacter::ApplyViewKick(const float PitchKickDegrees, const float Yaw
         return;
     }
 
-    // Function: Recoil is physical camera kick, not mouse look. Invert Mouse never changes it.
-    // In this project's control-rotation convention, adding positive pitch produces the visible upward weapon kick.
     FRotator ControlRotation = Controller->GetControlRotation();
-    const float CurrentPitch = FRotator::NormalizeAxis(ControlRotation.Pitch);
-    ControlRotation.Pitch = FMath::Clamp(CurrentPitch + FMath::Abs(PitchKickDegrees), -89.0f, 89.0f);
+    float NormalizedPitch = FRotator::NormalizeAxis(ControlRotation.Pitch);
+    NormalizedPitch = FMath::Clamp(NormalizedPitch - FMath::Abs(PitchKickDegrees), -89.0f, 89.0f);
+
+    ControlRotation.Pitch = NormalizedPitch;
     ControlRotation.Yaw += YawKickDegrees;
     Controller->SetControlRotation(ControlRotation);
 }
@@ -459,7 +457,7 @@ void AHeroCharacter::MeleeAttack()
         return;
     }
 
-    // Function: F performs a short forward melee trace.
+    // Function: F performs a short-range forward trace and damages the first health component hit.
     constexpr float MeleeRangeCm = 190.0f;
     constexpr float MeleeDamage = 40.0f;
 
@@ -482,7 +480,6 @@ void AHeroCharacter::MeleeAttack()
     }
 }
 
-
 void AHeroCharacter::DevSpawnVehicleForTesting()
 {
     if (HealthComponent && HealthComponent->IsDead())
@@ -490,6 +487,7 @@ void AHeroCharacter::DevSpawnVehicleForTesting()
         return;
     }
 
-    // Function: Ctrl+S spawns a test vehicle but does not enter it. Press G near it to enter.
+    // Function: Ctrl+S is a development-only helper that spawns a real RaceVehicleCore pawn in front of the hero.
+    // It intentionally does not enter the car. Press G near the car to enter.
     SpawnDriveableVehicleForEntry();
 }

@@ -81,6 +81,8 @@ DoubleClickTime=0.200000
 +ActionMappings=(ActionName="Fire",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=LeftMouseButton)
 +ActionMappings=(ActionName="Aim",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=RightMouseButton)
 +ActionMappings=(ActionName="Reload",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=R)
++ActionMappings=(ActionName="ToggleVehicleMode",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Q)
++ActionMappings=(ActionName="Interact",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=E)
 +ActionMappings=(ActionName="Crouch",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=LeftControl)
 +ActionMappings=(ActionName="Crouch",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=C)
 +ActionMappings=(ActionName="PauseMenu",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=Escape)
@@ -96,6 +98,4 @@ DefaultInputComponentClass=/Script/EnhancedInput.EnhancedInputComponent
 DefaultTouchInterface=/Engine/MobileResources/HUD/DefaultVirtualJoysticks.DefaultVirtualJoysticks
 -ConsoleKeys=Tilde
 +ConsoleKeys=Tilde
-+ActionMappings=(ActionName="Interact",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=G)
-+ActionMappings=(ActionName="Melee",bShift=False,bCtrl=False,bAlt=False,bCmd=False,Key=F)
-+ActionMappings=(ActionName="DevSpawnVehicle",bShift=False,bCtrl=True,bAlt=False,bCmd=False,Key=S)
+

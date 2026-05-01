@@ -1,11 +1,10 @@
-#include "HeroWeaponCore.h"
+﻿#include "HeroWeaponCore.h"
 
 void FHeroWeaponCore::Initialize(const FHeroWeaponConfig& InConfig)
 {
-    // Function: Initialize weapon state. Sandbox reserve ammo is intentionally infinite.
     Config = InConfig;
     Config.MagazineSize = FMath::Max(1, Config.MagazineSize);
-    Config.ReserveAmmo = 999999;
+    Config.ReserveAmmo = FMath::Max(0, Config.ReserveAmmo);
     Config.FireRateRoundsPerMinute = FMath::Max(1.0f, Config.FireRateRoundsPerMinute);
     AmmoInMagazine = Config.MagazineSize;
     ReserveAmmo = Config.ReserveAmmo;
@@ -15,7 +14,6 @@ void FHeroWeaponCore::Initialize(const FHeroWeaponConfig& InConfig)
 
 void FHeroWeaponCore::Tick(const float DeltaSeconds)
 {
-    // Function: Advance reload timer and finish reload when the timer ends.
     if (!bReloading)
     {
         return;
@@ -30,13 +28,11 @@ void FHeroWeaponCore::Tick(const float DeltaSeconds)
 
 bool FHeroWeaponCore::CanFire() const
 {
-    // Function: Weapon can fire only when it has magazine ammo and is not reloading.
     return !bReloading && AmmoInMagazine > 0;
 }
 
 bool FHeroWeaponCore::ConsumeShot()
 {
-    // Function: Consume one magazine round for a valid shot.
     if (!CanFire())
     {
         return false;
@@ -48,8 +44,7 @@ bool FHeroWeaponCore::ConsumeShot()
 
 bool FHeroWeaponCore::StartReload()
 {
-    // Function: Start reload when magazine is not full. Reserve ammo is infinite in sandbox.
-    if (bReloading || AmmoInMagazine >= Config.MagazineSize)
+    if (bReloading || AmmoInMagazine >= Config.MagazineSize || ReserveAmmo <= 0)
     {
         return false;
     }
@@ -61,39 +56,35 @@ bool FHeroWeaponCore::StartReload()
 
 void FHeroWeaponCore::FinishReload()
 {
-    // Function: Refill magazine without consuming reserve ammo.
-    AmmoInMagazine = Config.MagazineSize;
-    ReserveAmmo = Config.ReserveAmmo;
+    const int32 NeededAmmo = Config.MagazineSize - AmmoInMagazine;
+    const int32 AmmoToLoad = FMath::Min(NeededAmmo, ReserveAmmo);
+    AmmoInMagazine += AmmoToLoad;
+    ReserveAmmo -= AmmoToLoad;
     bReloading = false;
     ReloadRemainingSeconds = 0.0f;
 }
 
 const FHeroWeaponConfig& FHeroWeaponCore::GetConfig() const
 {
-    // Function: Return current weapon configuration.
     return Config;
 }
 
 int32 FHeroWeaponCore::GetAmmoInMagazine() const
 {
-    // Function: Return current magazine ammo.
     return AmmoInMagazine;
 }
 
 int32 FHeroWeaponCore::GetReserveAmmo() const
 {
-    // Function: Return sandbox-infinite reserve ammo value.
     return ReserveAmmo;
 }
 
 bool FHeroWeaponCore::IsReloading() const
 {
-    // Function: Return whether the weapon is currently reloading.
     return bReloading;
 }
 
 float FHeroWeaponCore::GetReloadRemainingSeconds() const
 {
-    // Function: Return remaining reload time.
     return ReloadRemainingSeconds;
 }

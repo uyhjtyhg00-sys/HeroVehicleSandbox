@@ -10,7 +10,6 @@
 #include "HeroPlayerController.h"
 #include "HeroProjectile.h"
 
-// 기능: 인간/차량 기본 무기 설정과 컴포넌트 tick을 초기화한다.
 UHeroWeaponComponent::UHeroWeaponComponent()
 {
     PrimaryComponentTick.bCanEverTick = true;
@@ -41,7 +40,6 @@ UHeroWeaponComponent::UHeroWeaponComponent()
     VehicleAbilitySlots.SetNum(3);
 }
 
-// 기능: 무기 코어를 현재 설정값으로 초기화한다.
 void UHeroWeaponComponent::BeginPlay()
 {
     Super::BeginPlay();
@@ -49,7 +47,6 @@ void UHeroWeaponComponent::BeginPlay()
     VehicleWeaponCore.Initialize(VehiclePrimaryWeapon);
 }
 
-// 기능: 무기 쿨다운, 재장전, 연사 상태, 열 누적을 매 프레임 갱신한다.
 void UHeroWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
     Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
@@ -65,14 +62,12 @@ void UHeroWeaponComponent::TickComponent(const float DeltaTime, const ELevelTick
     }
 }
 
-// 기능: 영웅/차량 모드에 따라 활성 무기 코어를 전환한다.
 void UHeroWeaponComponent::SetPlayerMode(const EHeroPlayerMode NewMode)
 {
     PlayerMode = NewMode;
     FireCooldownSeconds = 0.0f;
 }
 
-// 기능: 발사 입력을 시작하고 가능한 경우 즉시 첫 발을 발사한다.
 void UHeroWeaponComponent::StartFire(USceneComponent* FireOrigin)
 {
     CachedFireOrigin = FireOrigin;
@@ -80,79 +75,66 @@ void UHeroWeaponComponent::StartFire(USceneComponent* FireOrigin)
     TryFire(FireOrigin);
 }
 
-// 기능: 발사 입력을 중지한다.
 void UHeroWeaponComponent::StopFire()
 {
     bWantsToFire = false;
 }
 
-// 기능: 현재 무기 코어의 재장전을 요청한다.
 void UHeroWeaponComponent::Reload()
 {
     GetMutableCore().StartReload();
 }
 
-// 기능: 조준 상태를 설정해 확산/FOV 계산에 반영한다.
 void UHeroWeaponComponent::SetAiming(const bool bNewAiming)
 {
     bAiming = bNewAiming;
 }
 
-// 기능: 현재 탄창 내 탄약 수를 반환한다.
 int32 UHeroWeaponComponent::GetAmmoInMagazine() const
 {
     return GetCore().GetAmmoInMagazine();
 }
 
-// 기능: 현재 예비 탄약 수를 반환한다.
 int32 UHeroWeaponComponent::GetReserveAmmo() const
 {
     return GetCore().GetReserveAmmo();
 }
 
-// 기능: 현재 재장전 중인지 반환한다.
 bool UHeroWeaponComponent::IsReloading() const
 {
     return GetCore().IsReloading();
 }
 
-// 기능: 현재 우클릭 조준 상태인지 반환한다.
 bool UHeroWeaponComponent::IsAiming() const
 {
     return bAiming;
 }
 
-// 기능: 현재 활성 무기의 이름을 반환한다.
 FText UHeroWeaponComponent::GetWeaponName() const
 {
     return GetCore().GetConfig().WeaponName;
 }
 
-// 기능: 현재 무기 열/확산 상태를 0~1 값으로 반환한다.
 float UHeroWeaponComponent::GetWeaponHeat01() const
 {
     return WeaponHeat01;
 }
 
-// 기능: 현재 활성 무기 코어의 설정 구조체를 반환한다.
 const FHeroWeaponConfig& UHeroWeaponComponent::GetCurrentWeaponConfig() const
 {
     return GetCore().GetConfig();
 }
 
-// 기능: 현재 플레이어 모드에 맞는 수정 가능한 무기 코어를 반환한다.
 FHeroWeaponCore& UHeroWeaponComponent::GetMutableCore()
 {
     return PlayerMode == EHeroPlayerMode::Vehicle ? VehicleWeaponCore : HumanWeaponCore;
 }
 
-// 기능: 현재 플레이어 모드에 맞는 읽기 전용 무기 코어를 반환한다.
 const FHeroWeaponCore& UHeroWeaponComponent::GetCore() const
 {
     return PlayerMode == EHeroPlayerMode::Vehicle ? VehicleWeaponCore : HumanWeaponCore;
 }
 
-// 기능: 쿨다운과 탄약을 검사한 뒤 히트스캔 또는 투사체 발사를 실행한다.
 void UHeroWeaponComponent::TryFire(USceneComponent* FireOrigin)
 {
     FHeroWeaponCore& Core = GetMutableCore();
@@ -194,8 +176,6 @@ void UHeroWeaponComponent::TryFire(USceneComponent* FireOrigin)
     FireCooldownSeconds = 60.0f / FMath::Max(1.0f, Config.FireRateRoundsPerMinute);
 }
 
-// 기능: 카메라 기준 히트스캔 사격과 데미지 처리를 수행한다.
-// 기능: 카메라 기준 히트스캔 사격과 데미지 적용을 처리한다.
 void UHeroWeaponComponent::FireHitScan(const FVector& Origin, const FVector& Direction, const FHeroWeaponConfig& Config)
 {
     UWorld* World = GetWorld();
@@ -230,8 +210,6 @@ void UHeroWeaponComponent::FireHitScan(const FVector& Origin, const FVector& Dir
     }
 }
 
-// 기능: 투사체 무기를 스폰하고 초기 속도를 부여한다.
-// 기능: 투사체 액터를 생성하고 발사 방향/속도를 설정한다.
 void UHeroWeaponComponent::FireProjectile(const FVector& Origin, const FVector& Direction, const FHeroWeaponConfig& Config)
 {
     UWorld* World = GetWorld();
@@ -284,7 +262,6 @@ bool UHeroWeaponComponent::GetFireView(USceneComponent* FireOrigin, FVector& Out
     return false;
 }
 
-// 기능: 조준/열 상태에 따른 탄퍼짐을 방향 벡터에 적용한다.
 FVector UHeroWeaponComponent::ApplySpread(const FVector& Direction, const FHeroWeaponConfig& Config) const
 {
     const float HeatSpread = WeaponHeat01 * 0.28f;
@@ -297,25 +274,34 @@ FVector UHeroWeaponComponent::ApplySpread(const FVector& Direction, const FHeroW
     return FMath::VRandCone(Direction.GetSafeNormal(), FMath::DegreesToRadians(SpreadDegrees));
 }
 
-// 기능: 마우스 반전 옵션과 무관하게 항상 위쪽으로 총기 반동을 적용한다.
+// 기능: 총기 반동을 마우스 반전 옵션과 분리된 전용 카메라 킥으로 적용한다.
 void UHeroWeaponComponent::ApplyRecoil(const FHeroWeaponConfig& Config)
 {
-    AHeroCharacter* Hero = Cast<AHeroCharacter>(GetOwner());
-    if (!Hero || !Hero->IsPlayerControlled())
+    APawn* PawnOwner = Cast<APawn>(GetOwner());
+    if (!PawnOwner || !PawnOwner->IsPlayerControlled())
     {
         return;
     }
 
-    const float ModeScale = PlayerMode == EHeroPlayerMode::Vehicle ? 0.55f : 1.0f;
-    const float AimScale = bAiming ? 0.48f : 1.0f;
-    const float PitchKick = 0.075f * ModeScale * AimScale * FMath::Clamp(Config.FireRateRoundsPerMinute / 600.0f, 0.65f, 1.35f);
-    const float YawKick = FMath::FRandRange(-0.035f, 0.035f) * ModeScale * AimScale;
+    // Function: Apply intentionally strong weapon kick. Direction is owned by AHeroCharacter::ApplyViewKick.
+    // Recoil always uses AHeroCharacter::ApplyViewKick so Mouse Invert cannot flip its direction.
+    const float ModeScale = PlayerMode == EHeroPlayerMode::Vehicle ? 0.45f : 1.0f;
+    const float AimScale = bAiming ? 0.42f : 1.0f;
+    const float RateScale = FMath::Clamp(Config.FireRateRoundsPerMinute / 620.0f, 0.75f, 1.20f);
 
-    Hero->ApplyViewKick(PitchKick, YawKick);
+    const float PitchKick = 0.280f * ModeScale * AimScale * RateScale;
+    const float YawKick = FMath::FRandRange(-0.030f, 0.030f) * ModeScale * AimScale;
+
+    if (AHeroCharacter* HeroOwner = Cast<AHeroCharacter>(PawnOwner))
+    {
+        HeroOwner->ApplyViewKick(PitchKick, YawKick);
+        return;
+    }
+
+    PawnOwner->AddControllerYawInput(YawKick);
 }
 
-// 기능: 로컬 플레이어 HUD에 히트마커와 데미지 숫자를 표시한다.
-// 기능: 로컬 HUD에 명중/처치 피드백을 전달한다.
+
 void UHeroWeaponComponent::NotifyLocalHit(const float DamageAmount, const bool bKilled)
 {
     const APawn* PawnOwner = Cast<APawn>(GetOwner());

@@ -47,6 +47,7 @@ void AHeroCharacter::BeginPlay()
     LoadAimSettings();
     HealthComponent->OnDeath.AddDynamic(this, &AHeroCharacter::HandleDeath);
     VehicleModeComponent->OnPlayerModeChanged.AddDynamic(this, &AHeroCharacter::ApplyModeToComponents);
+    VehicleModeComponent->ExitVehicleMode();
     ApplyModeToComponents(EHeroPlayerMode::Human);
 }
 
@@ -62,27 +63,21 @@ void AHeroCharacter::Tick(const float DeltaSeconds)
 void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
     Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-    // Function: Bind Overwatch-style hero movement, look, combat, interact, melee, and dev vehicle spawn.
     PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AHeroCharacter::MoveForward);
     PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AHeroCharacter::MoveRight);
     PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AHeroCharacter::Turn);
     PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AHeroCharacter::LookUp);
-
     PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &ACharacter::Jump);
     PlayerInputComponent->BindAction(TEXT("Jump"), IE_Released, this, &ACharacter::StopJumping);
     PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AHeroCharacter::StartHeroCrouch);
     PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Released, this, &AHeroCharacter::StopHeroCrouch);
-
     PlayerInputComponent->BindAction(TEXT("Fire"), IE_Pressed, this, &AHeroCharacter::StartFire);
     PlayerInputComponent->BindAction(TEXT("Fire"), IE_Released, this, &AHeroCharacter::StopFire);
     PlayerInputComponent->BindAction(TEXT("Aim"), IE_Pressed, this, &AHeroCharacter::StartAim);
     PlayerInputComponent->BindAction(TEXT("Aim"), IE_Released, this, &AHeroCharacter::StopAim);
     PlayerInputComponent->BindAction(TEXT("Reload"), IE_Pressed, this, &AHeroCharacter::Reload);
-
+    PlayerInputComponent->BindAction(TEXT("ToggleVehicleMode"), IE_Pressed, this, &AHeroCharacter::ToggleVehicleMode);
     PlayerInputComponent->BindAction(TEXT("Interact"), IE_Pressed, this, &AHeroCharacter::Interact);
-    PlayerInputComponent->BindAction(TEXT("Melee"), IE_Pressed, this, &AHeroCharacter::MeleeAttack);
-    PlayerInputComponent->BindAction(TEXT("DevSpawnVehicle"), IE_Pressed, this, &AHeroCharacter::DevSpawnVehicleForTesting);
 }
 
 // 기능: 앉기 시작 시 기본 Character crouch 처리를 유지한다.
@@ -155,9 +150,7 @@ void AHeroCharacter::MoveForward(const float Value)
 {
     if (Value != 0.0f && !HealthComponent->IsDead())
     {
-        // Function: Overwatch baseline is 5.5 m/s forward, with backward movement at 90% input scale.
-        const float DirectionScale = Value < 0.0f ? 0.90f : 1.0f;
-        AddMovementInput(GetActorForwardVector(), Value * DirectionScale * GetAirMovementScale());
+        AddMovementInput(GetActorForwardVector(), Value * GetAirMovementScale());
     }
 }
 
@@ -250,14 +243,12 @@ void AHeroCharacter::StopHeroCrouch()
 // 기능: 가짜 속도 모드 대신 근처 차량 탑승/스폰 탑승을 실행한다.
 void AHeroCharacter::ToggleVehicleMode()
 {
-    // Function: Legacy Q/E vehicle-mode path is intentionally harmless. Real interact is on G.
-    Interact();
+    EnterNearestOrSpawnedVehicle();
 }
 
 // 기능: 상호작용 키로도 실제 차량 탑승을 실행한다.
 void AHeroCharacter::Interact()
 {
-    // Function: G enters the nearest existing real vehicle only.
     EnterNearestOrSpawnedVehicle();
 }
 
@@ -269,16 +260,14 @@ void AHeroCharacter::HandleDeath()
     DisableInput(nullptr);
 }
 
-// 기능: CharacterMovement의 지상/공중/앉기 이동값을 설정한다.
+// 기능: CharacterMovement를 Overwatch식 즉시 가속/즉시 정지에 가깝게 설정한다.
 void AHeroCharacter::ConfigureCharacterMovement()
 {
     UCharacterMovementComponent* Movement = GetCharacterMovement();
-
-    // Function: Overwatch-like base movement. UE uses centimeters, so 5.5 m/s is 550 cm/s.
     Movement->MaxWalkSpeed = HumanWalkSpeed;
     Movement->MaxWalkSpeedCrouched = CrouchWalkSpeed;
 
-    // Function: Remove ground inertia. Press/release and left/right swaps should respond immediately.
+    // Ground movement: almost no inertia. Start/stop must feel immediate.
     Movement->MaxAcceleration = 100000.0f;
     Movement->BrakingDecelerationWalking = 100000.0f;
     Movement->GroundFriction = 70.0f;
@@ -287,19 +276,21 @@ void AHeroCharacter::ConfigureCharacterMovement()
     Movement->bUseSeparateBrakingFriction = true;
     Movement->MinAnalogWalkSpeed = 0.0f;
 
-    // Function: Jump height is kept, air speed is preserved, but mid-air direction changes are heavily limited.
-    Movement->JumpZVelocity = 650.0f;
-    Movement->GravityScale = 2.05f;
-    Movement->AirControl = 0.18f;
-    Movement->AirControlBoostMultiplier = 0.20f;
-    Movement->AirControlBoostVelocityThreshold = 65.0f;
-    Movement->FallingLateralFriction = 0.0f;
-    Movement->BrakingDecelerationFalling = 0.0f;
+    // Air movement: still controllable, but weaker than grounded control.
+    // Function: Fast-fall tuning keeps jump responsive but reduces floaty hang time.
+    Movement->JumpZVelocity = 585.0f;
+    Movement->GravityScale = 2.25f;
+    Movement->AirControl = 0.42f;
+    Movement->AirControlBoostMultiplier = 0.65f;
+    Movement->AirControlBoostVelocityThreshold = 35.0f;
+    Movement->FallingLateralFriction = 0.12f;
+    Movement->BrakingDecelerationFalling = 120.0f;
 
     Movement->bOrientRotationToMovement = false;
     Movement->NavAgentProps.bCanCrouch = true;
     GetCapsuleComponent()->SetCanEverAffectNavigation(false);
 }
+
 
 // 기능: 저장 슬롯에서 조준 설정을 읽어온다.
 void AHeroCharacter::LoadAimSettings()
@@ -354,8 +345,6 @@ float AHeroCharacter::GetAirMovementScale() const
 void AHeroCharacter::ApplyModeToComponents(const EHeroPlayerMode NewMode)
 {
     (void)NewMode;
-
-    // Function: Disable old fake vehicle speed mode. Real driving is handled by AHeroDriveableVehiclePawn.
     WeaponComponent->SetPlayerMode(EHeroPlayerMode::Human);
     GetCharacterMovement()->MaxWalkSpeed = HumanWalkSpeed;
     GetCharacterMovement()->MaxWalkSpeedCrouched = CrouchWalkSpeed;
@@ -426,8 +415,12 @@ void AHeroCharacter::EnterNearestOrSpawnedVehicle()
         return;
     }
 
-    // Function: Gameplay interaction may only enter a nearby existing vehicle.
     AHeroDriveableVehiclePawn* Vehicle = FindNearestDriveableVehicle();
+    if (!Vehicle)
+    {
+        Vehicle = SpawnDriveableVehicleForEntry();
+    }
+
     if (Vehicle)
     {
         Vehicle->EnterVehicle(this, CurrentController);
@@ -442,54 +435,11 @@ void AHeroCharacter::ApplyViewKick(const float PitchKickDegrees, const float Yaw
         return;
     }
 
-    // Function: Recoil is physical camera kick, not mouse look. Invert Mouse never changes it.
-    // In this project's control-rotation convention, adding positive pitch produces the visible upward weapon kick.
     FRotator ControlRotation = Controller->GetControlRotation();
-    const float CurrentPitch = FRotator::NormalizeAxis(ControlRotation.Pitch);
-    ControlRotation.Pitch = FMath::Clamp(CurrentPitch + FMath::Abs(PitchKickDegrees), -89.0f, 89.0f);
+    float NormalizedPitch = FRotator::NormalizeAxis(ControlRotation.Pitch);
+    NormalizedPitch = FMath::Clamp(NormalizedPitch - FMath::Abs(PitchKickDegrees), -89.0f, 89.0f);
+
+    ControlRotation.Pitch = NormalizedPitch;
     ControlRotation.Yaw += YawKickDegrees;
     Controller->SetControlRotation(ControlRotation);
-}
-
-
-void AHeroCharacter::MeleeAttack()
-{
-    if (!Controller || (HealthComponent && HealthComponent->IsDead()))
-    {
-        return;
-    }
-
-    // Function: F performs a short forward melee trace.
-    constexpr float MeleeRangeCm = 190.0f;
-    constexpr float MeleeDamage = 40.0f;
-
-    const FVector Start = FirstPersonCamera ? FirstPersonCamera->GetComponentLocation() : GetActorLocation() + FVector(0.0f, 0.0f, 64.0f);
-    const FVector Direction = FirstPersonCamera ? FirstPersonCamera->GetForwardVector() : GetActorForwardVector();
-    const FVector End = Start + Direction * MeleeRangeCm;
-
-    FCollisionQueryParams Params(SCENE_QUERY_STAT(HeroMeleeAttack), false, this);
-    FHitResult Hit;
-
-    if (GetWorld() && GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Pawn, Params))
-    {
-        if (AActor* HitActor = Hit.GetActor())
-        {
-            if (UHeroHealthComponent* HitHealth = HitActor->FindComponentByClass<UHeroHealthComponent>())
-            {
-                HitHealth->ApplyDamage(MeleeDamage, this);
-            }
-        }
-    }
-}
-
-
-void AHeroCharacter::DevSpawnVehicleForTesting()
-{
-    if (HealthComponent && HealthComponent->IsDead())
-    {
-        return;
-    }
-
-    // Function: Ctrl+S spawns a test vehicle but does not enter it. Press G near it to enter.
-    SpawnDriveableVehicleForEntry();
 }

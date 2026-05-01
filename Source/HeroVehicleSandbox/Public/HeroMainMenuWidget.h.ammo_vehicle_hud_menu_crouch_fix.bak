@@ -22,5 +22,4 @@ private:
 
 private:
     TSharedPtr<class STextBlock> StatusText;
-    TSharedPtr<class STextBlock> PatchNotesText;
 };

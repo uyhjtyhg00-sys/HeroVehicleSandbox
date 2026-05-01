@@ -182,14 +182,16 @@ void FRaceVehicleCore::Initialize(const FRaceVehicleParameters& InParameters)
     if (State.PositionMeters.Z < Parameters.TargetRideHeightMeters * 0.75)
     {
         State.PositionMeters.Z = Parameters.TargetRideHeightMeters;
-        State.RideHeightMeters = Parameters.TargetRideHeightMeters;
+        State.RideHeightMeters = static_cast<float>(State.PositionMeters.Z - Parameters.GroundProbeHeightMeters);
         State.VerticalVelocityMetersPerSecond = 0.0f;
     }
 }
 
 void FRaceVehicleCore::ResetState(const double XMeters, const double YMeters, const double ZMeters, const float InYawRadians)
 {
-    const double InitialZ = static_cast<double>(Parameters.GroundProbeHeightMeters + Parameters.TargetRideHeightMeters);
+    // 기능: 외부 스폰/체크포인트/차량 Pawn이 전달한 Z가 있으면 존중하고, 없을 때만 기본 지상고를 사용한다.
+    const double DefaultZ = static_cast<double>(Parameters.GroundProbeHeightMeters + Parameters.TargetRideHeightMeters);
+    const double InitialZ = std::abs(ZMeters) > 1.0e-4 ? ZMeters : DefaultZ;
 
     State.PositionMeters = FRaceCoreVector3(XMeters, YMeters, InitialZ);
     State.VelocityMetersPerSecond = FRaceCoreVector3(0.0, 0.0, 0.0);
@@ -201,7 +203,7 @@ void FRaceVehicleCore::ResetState(const double XMeters, const double YMeters, co
     State.RollAngularVelocityRadPerSecond = 0.0f;
     State.PitchAngularVelocityRadPerSecond = 0.0f;
 
-    State.RideHeightMeters = Parameters.TargetRideHeightMeters;
+    State.RideHeightMeters = static_cast<float>(State.PositionMeters.Z - Parameters.GroundProbeHeightMeters);
     State.VerticalVelocityMetersPerSecond = 0.0f;
 
     State.EngineRpm = Parameters.IdleRpm;
@@ -795,7 +797,7 @@ void FRaceVehicleCore::ApplyFullStopIfNeeded()
         State.EngineRpm = State.EngineDisabled != 0 ? 0.0f : Parameters.IdleRpm;
 
         State.PositionMeters.Z = Parameters.GroundProbeHeightMeters + Parameters.TargetRideHeightMeters;
-        State.RideHeightMeters = Parameters.TargetRideHeightMeters;
+        State.RideHeightMeters = static_cast<float>(State.PositionMeters.Z - Parameters.GroundProbeHeightMeters);
         State.LockedPositionMeters = State.PositionMeters;
         State.bPositionLocked = 1;
     }
@@ -816,7 +818,7 @@ bool FRaceVehicleCore::MaintainPositionLockIfNeeded()
 
     State.PositionMeters = State.LockedPositionMeters;
     State.PositionMeters.Z = Parameters.GroundProbeHeightMeters + Parameters.TargetRideHeightMeters;
-    State.RideHeightMeters = Parameters.TargetRideHeightMeters;
+    State.RideHeightMeters = static_cast<float>(State.PositionMeters.Z - Parameters.GroundProbeHeightMeters);
     State.VelocityMetersPerSecond = FRaceCoreVector3(0.0, 0.0, 0.0);
     State.ForwardSpeedMetersPerSecond = 0.0f;
     State.YawAngularVelocityRadPerSecond = 0.0f;

@@ -104,14 +104,8 @@ protected:
     // 기능: 가짜 속도 모드 대신 근처 차량 탑승/스폰 탑승을 실행한다.
     void ToggleVehicleMode();
 
-    // Function: Shared interaction key. Enters a nearby real vehicle only.
+    // 기능: 상호작용 키로도 실제 차량 탑승을 실행한다.
     void Interact();
-
-    // Function: F performs a short-range melee attack.
-    void MeleeAttack();
-
-    // Function: Ctrl+S spawns a real vehicle for development testing without entering it.
-    void DevSpawnVehicleForTesting();
 
     // 기능: 체력이 0이 되었을 때 입력과 무기를 중지한다.
     UFUNCTION()
@@ -166,19 +160,16 @@ private:
     TSubclassOf<AHeroDriveableVehiclePawn> DriveableVehicleClass;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Vehicle", meta=(AllowPrivateAccess="true"))
-    float VehicleEntrySearchRadiusCm = 320.0f;
+    float VehicleEntrySearchRadiusCm = 520.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Vehicle", meta=(AllowPrivateAccess="true"))
     float VehicleSpawnDistanceCm = 520.0f;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Vehicle", meta=(AllowPrivateAccess="true"))
-    bool bAllowDebugVehicleAutoSpawn = false;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Movement", meta=(AllowPrivateAccess="true"))
     float HumanWalkSpeed = 550.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Movement", meta=(AllowPrivateAccess="true"))
-    float CrouchWalkSpeed = 300.0f;
+    float CrouchWalkSpeed = 330.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Movement", meta=(AllowPrivateAccess="true"))
     float StandingEyeHeight = 74.0f;
@@ -187,10 +178,10 @@ private:
     float HeroCrouchedEyeHeight = 48.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Movement", meta=(AllowPrivateAccess="true"))
-    float CameraHeightInterpSpeed = 7.5f;
+    float CameraHeightInterpSpeed = 16.0f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Movement", meta=(AllowPrivateAccess="true"))
-    float AirMovementInputScale = 1.0f;
+    float AirMovementInputScale = 0.46f;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Camera", meta=(AllowPrivateAccess="true"))
     float AimFovMultiplier = 0.72f;
