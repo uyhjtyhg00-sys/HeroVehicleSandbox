@@ -1,0 +1,13 @@
+﻿{
+    "FileVersion": 3,
+    "EngineAssociation": "5.7",
+    "Category": "Game",
+    "Description": "Hyper-Tactical Hero Vehicle Sandbox derived from RaceCore vehicle baseline.",
+    "Modules": [
+        {
+            "Name": "HeroVehicleSandbox",
+            "Type": "Runtime",
+            "LoadingPhase": "Default"
+        }
+    ]
+}

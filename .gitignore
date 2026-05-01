@@ -1,0 +1,35 @@
+﻿# Unreal generated folders
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+.vs/
+
+# IDE files
+*.sln
+*.VC.db
+*.opensdf
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.idea/
+
+# Build logs
+Build_RaceCoreEditor.log
+Build_HeroVehicleSandboxEditor.log
+*.log
+
+# Build artifacts
+*.dll
+*.lib
+*.exp
+*.pdb
+*.obj
+*.ilk
+*.exe
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
