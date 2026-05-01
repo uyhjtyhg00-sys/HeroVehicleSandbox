@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "HeroCharacter.h"
@@ -14,6 +14,9 @@ public:
 
     UFUNCTION(BlueprintCallable, Category="Hero|AI")
     EHeroBotRole GetBotRole() const;
+
+    UFUNCTION(BlueprintCallable, Category="Hero|AI")
+    void SetBotRole(EHeroBotRole NewRole);
 
 private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|AI", meta=(AllowPrivateAccess="true"))

@@ -12,3 +12,8 @@ EHeroBotRole AHeroBotCharacter::GetBotRole() const
 {
     return BotRole;
 }
+
+void AHeroBotCharacter::SetBotRole(const EHeroBotRole NewRole)
+{
+    BotRole = NewRole;
+}

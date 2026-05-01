@@ -1,0 +1,289 @@
+﻿#include "HeroCharacter.h"
+
+#include "Camera/CameraComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "HeroHealthComponent.h"
+#include "HeroSettingsSaveGame.h"
+#include "HeroTeamComponent.h"
+#include "HeroVehicleModeComponent.h"
+#include "HeroWeaponComponent.h"
+#include "Kismet/GameplayStatics.h"
+
+AHeroCharacter::AHeroCharacter()
+{
+    PrimaryActorTick.bCanEverTick = true;
+
+    GetCapsuleComponent()->InitCapsuleSize(42.0f, 96.0f);
+
+    FirstPersonCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FirstPersonCamera"));
+    FirstPersonCamera->SetupAttachment(GetCapsuleComponent());
+    FirstPersonCamera->SetRelativeLocation(FVector(0.0f, 0.0f, StandingEyeHeight));
+    FirstPersonCamera->bUsePawnControlRotation = true;
+    FirstPersonCamera->FieldOfView = 103.0f;
+
+    WeaponComponent = CreateDefaultSubobject<UHeroWeaponComponent>(TEXT("HeroWeaponComponent"));
+    HealthComponent = CreateDefaultSubobject<UHeroHealthComponent>(TEXT("HeroHealthComponent"));
+    VehicleModeComponent = CreateDefaultSubobject<UHeroVehicleModeComponent>(TEXT("HeroVehicleModeComponent"));
+    TeamComponent = CreateDefaultSubobject<UHeroTeamComponent>(TEXT("HeroTeamComponent"));
+
+    bUseControllerRotationPitch = false;
+    bUseControllerRotationYaw = true;
+    bUseControllerRotationRoll = false;
+
+    ConfigureCharacterMovement();
+}
+
+void AHeroCharacter::BeginPlay()
+{
+    Super::BeginPlay();
+    LoadAimSettings();
+    HealthComponent->OnDeath.AddDynamic(this, &AHeroCharacter::HandleDeath);
+    VehicleModeComponent->OnPlayerModeChanged.AddDynamic(this, &AHeroCharacter::ApplyModeToComponents);
+    ApplyModeToComponents(VehicleModeComponent->GetPlayerMode());
+}
+
+void AHeroCharacter::Tick(const float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+    UpdateCameraHeight(DeltaSeconds);
+}
+
+void AHeroCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+    Super::SetupPlayerInputComponent(PlayerInputComponent);
+    PlayerInputComponent->BindAxis(TEXT("MoveForward"), this, &AHeroCharacter::MoveForward);
+    PlayerInputComponent->BindAxis(TEXT("MoveRight"), this, &AHeroCharacter::MoveRight);
+    PlayerInputComponent->BindAxis(TEXT("Turn"), this, &AHeroCharacter::Turn);
+    PlayerInputComponent->BindAxis(TEXT("LookUp"), this, &AHeroCharacter::LookUp);
+    PlayerInputComponent->BindAction(TEXT("Jump"), IE_Pressed, this, &ACharacter::Jump);
+    PlayerInputComponent->BindAction(TEXT("Jump"), IE_Released, this, &ACharacter::StopJumping);
+    PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Pressed, this, &AHeroCharacter::StartHeroCrouch);
+    PlayerInputComponent->BindAction(TEXT("Crouch"), IE_Released, this, &AHeroCharacter::StopHeroCrouch);
+    PlayerInputComponent->BindAction(TEXT("Fire"), IE_Pressed, this, &AHeroCharacter::StartFire);
+    PlayerInputComponent->BindAction(TEXT("Fire"), IE_Released, this, &AHeroCharacter::StopFire);
+    PlayerInputComponent->BindAction(TEXT("Aim"), IE_Pressed, this, &AHeroCharacter::StartAim);
+    PlayerInputComponent->BindAction(TEXT("Aim"), IE_Released, this, &AHeroCharacter::StopAim);
+    PlayerInputComponent->BindAction(TEXT("Reload"), IE_Pressed, this, &AHeroCharacter::Reload);
+    PlayerInputComponent->BindAction(TEXT("ToggleVehicleMode"), IE_Pressed, this, &AHeroCharacter::ToggleVehicleMode);
+    PlayerInputComponent->BindAction(TEXT("Interact"), IE_Pressed, this, &AHeroCharacter::Interact);
+}
+
+void AHeroCharacter::OnStartCrouch(const float HalfHeightAdjust, const float ScaledHalfHeightAdjust)
+{
+    Super::OnStartCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+}
+
+void AHeroCharacter::OnEndCrouch(const float HalfHeightAdjust, const float ScaledHalfHeightAdjust)
+{
+    Super::OnEndCrouch(HalfHeightAdjust, ScaledHalfHeightAdjust);
+}
+
+UCameraComponent* AHeroCharacter::GetFirstPersonCamera() const
+{
+    return FirstPersonCamera;
+}
+
+UHeroWeaponComponent* AHeroCharacter::GetWeaponComponent() const
+{
+    return WeaponComponent;
+}
+
+UHeroHealthComponent* AHeroCharacter::GetHealthComponent() const
+{
+    return HealthComponent;
+}
+
+UHeroVehicleModeComponent* AHeroCharacter::GetVehicleModeComponent() const
+{
+    return VehicleModeComponent;
+}
+
+UHeroTeamComponent* AHeroCharacter::GetTeamComponent() const
+{
+    return TeamComponent;
+}
+
+void AHeroCharacter::ApplyAimSettings(const FHeroAimSettings& NewSettings)
+{
+    AimSettings = NewSettings;
+    AimSettings.Clamp();
+    if (FirstPersonCamera)
+    {
+        FirstPersonCamera->SetFieldOfView(AimSettings.FirstPersonFovDegrees);
+    }
+}
+
+const FHeroAimSettings& AHeroCharacter::GetAimSettings() const
+{
+    return AimSettings;
+}
+
+bool AHeroCharacter::IsHeroCrouching() const
+{
+    return bIsCrouched;
+}
+
+void AHeroCharacter::MoveForward(const float Value)
+{
+    if (Value != 0.0f && !HealthComponent->IsDead())
+    {
+        AddMovementInput(GetActorForwardVector(), Value * GetAirMovementScale());
+    }
+}
+
+void AHeroCharacter::MoveRight(const float Value)
+{
+    if (Value != 0.0f && !HealthComponent->IsDead())
+    {
+        AddMovementInput(GetActorRightVector(), Value * GetAirMovementScale());
+    }
+}
+
+void AHeroCharacter::Turn(const float Value)
+{
+    if (Controller && Value != 0.0f)
+    {
+        const bool bVehicle = VehicleModeComponent->GetPlayerMode() == EHeroPlayerMode::Vehicle;
+        const bool bScoped = WeaponComponent->IsAiming();
+        AddControllerYawInput(Value * AimSettings.GetFinalDegreesPerCount(bScoped, bVehicle));
+    }
+}
+
+void AHeroCharacter::LookUp(const float Value)
+{
+    if (Controller && Value != 0.0f)
+    {
+        const bool bVehicle = VehicleModeComponent->GetPlayerMode() == EHeroPlayerMode::Vehicle;
+        const bool bScoped = WeaponComponent->IsAiming();
+        const float Invert = AimSettings.bInvertMouseY ? -1.0f : 1.0f;
+        AddControllerPitchInput(Value * Invert * AimSettings.GetFinalDegreesPerCount(bScoped, bVehicle));
+    }
+}
+
+void AHeroCharacter::StartFire()
+{
+    WeaponComponent->StartFire(FirstPersonCamera);
+}
+
+void AHeroCharacter::StopFire()
+{
+    WeaponComponent->StopFire();
+}
+
+void AHeroCharacter::StartAim()
+{
+    WeaponComponent->SetAiming(true);
+}
+
+void AHeroCharacter::StopAim()
+{
+    WeaponComponent->SetAiming(false);
+}
+
+void AHeroCharacter::Reload()
+{
+    WeaponComponent->Reload();
+}
+
+void AHeroCharacter::StartHeroCrouch()
+{
+    if (!HealthComponent->IsDead())
+    {
+        Crouch();
+    }
+}
+
+void AHeroCharacter::StopHeroCrouch()
+{
+    UnCrouch();
+}
+
+void AHeroCharacter::ToggleVehicleMode()
+{
+    VehicleModeComponent->ToggleVehicleMode();
+}
+
+void AHeroCharacter::Interact()
+{
+    UE_LOG(LogTemp, Display, TEXT("Interact: objective/use slot reserved. Vehicle entry and devices can attach here."));
+}
+
+void AHeroCharacter::HandleDeath()
+{
+    WeaponComponent->StopFire();
+    VehicleModeComponent->ExitVehicleMode();
+    StopHeroCrouch();
+}
+
+void AHeroCharacter::ConfigureCharacterMovement()
+{
+    UCharacterMovementComponent* Move = GetCharacterMovement();
+    Move->MaxWalkSpeed = HumanWalkSpeed;
+    Move->MaxWalkSpeedCrouched = CrouchWalkSpeed;
+    Move->MaxAcceleration = 12000.0f;
+    Move->BrakingDecelerationWalking = 12000.0f;
+    Move->GroundFriction = 14.0f;
+    Move->BrakingFrictionFactor = 2.0f;
+
+    // Not locked in air: the player can steer while airborne, but less than on ground.
+    Move->AirControl = 0.38f;
+    Move->AirControlBoostMultiplier = 1.15f;
+    Move->AirControlBoostVelocityThreshold = 220.0f;
+    Move->FallingLateralFriction = 0.28f;
+
+    Move->JumpZVelocity = 520.0f;
+    Move->GravityScale = 1.08f;
+    Move->bOrientRotationToMovement = false;
+    Move->GetNavAgentPropertiesRef().bCanCrouch = true;
+    GetCapsuleComponent()->SetCapsuleHalfHeight(96.0f);
+}
+
+void AHeroCharacter::LoadAimSettings()
+{
+    UHeroSettingsSaveGame* Save = Cast<UHeroSettingsSaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("HeroVehicleSettings"), 0));
+    if (!Save)
+    {
+        Save = Cast<UHeroSettingsSaveGame>(UGameplayStatics::CreateSaveGameObject(UHeroSettingsSaveGame::StaticClass()));
+        UGameplayStatics::SaveGameToSlot(Save, TEXT("HeroVehicleSettings"), 0);
+    }
+
+    if (Save)
+    {
+        ApplyAimSettings(Save->AimSettings);
+    }
+}
+
+void AHeroCharacter::UpdateCameraHeight(const float DeltaSeconds)
+{
+    if (!FirstPersonCamera)
+    {
+        return;
+    }
+
+    const float TargetZ = bIsCrouched ? HeroCrouchedEyeHeight : StandingEyeHeight;
+    const FVector Current = FirstPersonCamera->GetRelativeLocation();
+    const float NewZ = FMath::FInterpTo(Current.Z, TargetZ, DeltaSeconds, CameraHeightInterpSpeed);
+    FirstPersonCamera->SetRelativeLocation(FVector(Current.X, Current.Y, NewZ));
+}
+
+float AHeroCharacter::GetAirMovementScale() const
+{
+    const UCharacterMovementComponent* Move = GetCharacterMovement();
+    if (!Move || !Move->IsFalling())
+    {
+        return 1.0f;
+    }
+
+    return AirMovementInputScale;
+}
+
+void AHeroCharacter::ApplyModeToComponents(const EHeroPlayerMode NewMode)
+{
+    WeaponComponent->SetPlayerMode(NewMode);
+    GetCharacterMovement()->MaxWalkSpeed = NewMode == EHeroPlayerMode::Vehicle ? VehicleModeWalkSpeed : HumanWalkSpeed;
+    GetCharacterMovement()->MaxWalkSpeedCrouched = NewMode == EHeroPlayerMode::Vehicle ? VehicleModeWalkSpeed * 0.72f : CrouchWalkSpeed;
+}
+
+
+

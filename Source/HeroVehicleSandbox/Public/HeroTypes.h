@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "HeroTypes.generated.h"
@@ -131,6 +131,20 @@ struct FHeroAimSettings
 {
     GENERATED_BODY()
 
+    // Overwatch-style yaw.
+    //
+    // Runtime:
+    //   degrees/count = MouseSensitivity * 0.0066
+    //
+    // cm/360:
+    //   cm/360 = 360 * 2.54 / (DPI * MouseSensitivity * 0.0066)
+    //          ~= 138600 / (DPI * MouseSensitivity)
+    //
+    // DPI is only for physical-distance display. Do NOT multiply DPI into
+    // runtime camera rotation.
+    static constexpr float OverwatchYawDegreesPerCount = 0.0066f;
+    static constexpr float OverwatchCm360Constant = 138600.0f;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
     float MouseSensitivity = 1.0f;
 
@@ -152,26 +166,46 @@ struct FHeroAimSettings
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
     float TargetCmPer360 = 86.6f;
 
+    // 기능: 오버워치식 기본 yaw 값인 0.0066도/count를 반환한다.
     float GetBaseDegreesPerCount() const
     {
-        const float CountsPerCm = ReferenceMouseDpi / 2.54f;
-        const float CountsPer360 = TargetCmPer360 * CountsPerCm;
-        return CountsPer360 > KINDA_SMALL_NUMBER ? 360.0f / CountsPer360 : 0.0066f;
+        return OverwatchYawDegreesPerCount;
     }
 
+    // 기능: 현재 감도와 조준/차량 배율을 합산한 최종 도/count 값을 반환한다.
     float GetFinalDegreesPerCount(const bool bScoped, const bool bVehicle) const
     {
-        float Result = GetBaseDegreesPerCount() * MouseSensitivity;
+        float Result = OverwatchYawDegreesPerCount * MouseSensitivity;
         Result *= bScoped ? ScopedSensitivityMultiplier : 1.0f;
         Result *= bVehicle ? VehicleLookSensitivityMultiplier : 1.0f;
         return Result;
     }
 
+    // 기능: DPI와 인게임 감도로 현재 cm/360 값을 계산한다.
+    float GetCmPer360() const
+    {
+        const float SafeDpi = FMath::Max(1.0f, ReferenceMouseDpi);
+        const float SafeSensitivity = FMath::Max(0.001f, MouseSensitivity);
+        return OverwatchCm360Constant / (SafeDpi * SafeSensitivity);
+    }
+
+    // 기능: 목표 cm/360에 필요한 인게임 감도를 역산한다.
+    float GetSensitivityForTargetCmPer360() const
+    {
+        const float SafeDpi = FMath::Max(1.0f, ReferenceMouseDpi);
+        const float SafeCm = FMath::Max(1.0f, TargetCmPer360);
+        return OverwatchCm360Constant / (SafeDpi * SafeCm);
+    }
+
+    // 기능: 감도, FOV, DPI 설정값을 안전한 범위로 제한한다.
     void Clamp()
     {
-        MouseSensitivity = FMath::Clamp(MouseSensitivity, 0.1f, 20.0f);
+        MouseSensitivity = FMath::Clamp(MouseSensitivity, 0.01f, 100.0f);
         ScopedSensitivityMultiplier = FMath::Clamp(ScopedSensitivityMultiplier, 0.1f, 2.0f);
         VehicleLookSensitivityMultiplier = FMath::Clamp(VehicleLookSensitivityMultiplier, 0.1f, 2.0f);
         FirstPersonFovDegrees = FMath::Clamp(FirstPersonFovDegrees, 80.0f, 120.0f);
+        ReferenceMouseDpi = FMath::Clamp(ReferenceMouseDpi, 100.0f, 64000.0f);
+        TargetCmPer360 = FMath::Clamp(TargetCmPer360, 1.0f, 500.0f);
     }
 };
+

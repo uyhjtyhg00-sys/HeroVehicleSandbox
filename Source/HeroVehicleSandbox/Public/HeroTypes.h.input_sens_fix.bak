@@ -1,0 +1,205 @@
+﻿#pragma once
+
+#include "CoreMinimal.h"
+#include "HeroTypes.generated.h"
+
+UENUM(BlueprintType)
+enum class EHeroPlayerMode : uint8
+{
+    Human UMETA(DisplayName="Human"),
+    Vehicle UMETA(DisplayName="Vehicle"),
+    Dead UMETA(DisplayName="Dead"),
+    Spectator UMETA(DisplayName="Spectator")
+};
+
+UENUM(BlueprintType)
+enum class EHeroMatchState : uint8
+{
+    Boot UMETA(DisplayName="Boot"),
+    Sandbox UMETA(DisplayName="Sandbox"),
+    CombatTest UMETA(DisplayName="Combat Test"),
+    Paused UMETA(DisplayName="Paused")
+};
+
+UENUM(BlueprintType)
+enum class EHeroWeaponFireMode : uint8
+{
+    HitScan UMETA(DisplayName="HitScan"),
+    Projectile UMETA(DisplayName="Projectile")
+};
+
+UENUM(BlueprintType)
+enum class EHeroGameModeType : uint8
+{
+    Sandbox UMETA(DisplayName="Sandbox"),
+    Escort UMETA(DisplayName="Escort"),
+    Control UMETA(DisplayName="Control"),
+    TeamDeathmatch UMETA(DisplayName="Team Deathmatch")
+};
+
+UENUM(BlueprintType)
+enum class EHeroTeam : uint8
+{
+    None UMETA(DisplayName="None"),
+    TeamA UMETA(DisplayName="Team A"),
+    TeamB UMETA(DisplayName="Team B")
+};
+
+UENUM(BlueprintType)
+enum class EHeroObjectiveState : uint8
+{
+    Inactive UMETA(DisplayName="Inactive"),
+    Active UMETA(DisplayName="Active"),
+    Contested UMETA(DisplayName="Contested"),
+    Captured UMETA(DisplayName="Captured"),
+    Completed UMETA(DisplayName="Completed")
+};
+
+UENUM(BlueprintType)
+enum class EHeroBotRole : uint8
+{
+    Damage UMETA(DisplayName="Damage"),
+    Support UMETA(DisplayName="Support"),
+    Tank UMETA(DisplayName="Tank")
+};
+
+USTRUCT(BlueprintType)
+struct FHeroWeaponConfig
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    FText WeaponName = FText::FromString(TEXT("Pulse Rifle"));
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    EHeroWeaponFireMode FireMode = EHeroWeaponFireMode::HitScan;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    bool bIsHitScan = true;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float Damage = 34.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float FireRateRoundsPerMinute = 620.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float ReloadSeconds = 1.65f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float SpreadDegrees = 0.45f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float AimSpreadMultiplier = 0.35f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float RangeMeters = 150.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float ProjectileSpeedMetersPerSecond = 55.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float ProjectileGravityScale = 0.2f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    float ExplosionRadiusMeters = 3.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    int32 MagazineSize = 30;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon")
+    int32 ReserveAmmo = 120;
+};
+
+USTRUCT(BlueprintType)
+struct FHeroAbilitySlot
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Ability")
+    FName AbilityId = NAME_None;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Ability")
+    float CooldownSeconds = 0.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Ability")
+    bool bUnlocked = false;
+};
+
+USTRUCT(BlueprintType)
+struct FHeroAimSettings
+{
+    GENERATED_BODY()
+
+    // Overwatch-style yaw.
+    // Runtime:
+    //   degrees/count = MouseSensitivity * 0.0066
+    //
+    // cm/360:
+    //   cm/360 = 360 * 2.54 / (DPI * MouseSensitivity * 0.0066)
+    //          ~= 138600 / (DPI * MouseSensitivity)
+    static constexpr float OverwatchYawDegreesPerCount = 0.0066f;
+    static constexpr float OverwatchCm360Constant = 138600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
+    float MouseSensitivity = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
+    float ScopedSensitivityMultiplier = 1.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
+    float VehicleLookSensitivityMultiplier = 0.85f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
+    float FirstPersonFovDegrees = 103.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
+    bool bInvertMouseY = false;
+
+    // For cm/360 calculation and settings display only.
+    // DPI is NOT multiplied into runtime camera rotation; DPI changes the physical
+    // distance needed to produce the raw mouse counts.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
+    float ReferenceMouseDpi = 1600.0f;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Settings")
+    float TargetCmPer360 = 86.6f;
+
+    float GetBaseDegreesPerCount() const
+    {
+        return OverwatchYawDegreesPerCount;
+    }
+
+    float GetFinalDegreesPerCount(const bool bScoped, const bool bVehicle) const
+    {
+        float Result = OverwatchYawDegreesPerCount * MouseSensitivity;
+        Result *= bScoped ? ScopedSensitivityMultiplier : 1.0f;
+        Result *= bVehicle ? VehicleLookSensitivityMultiplier : 1.0f;
+        return Result;
+    }
+
+    float GetCmPer360() const
+    {
+        const float SafeDpi = FMath::Max(1.0f, ReferenceMouseDpi);
+        const float SafeSensitivity = FMath::Max(0.001f, MouseSensitivity);
+        return OverwatchCm360Constant / (SafeDpi * SafeSensitivity);
+    }
+
+    float GetSensitivityForTargetCmPer360() const
+    {
+        const float SafeDpi = FMath::Max(1.0f, ReferenceMouseDpi);
+        const float SafeCm = FMath::Max(1.0f, TargetCmPer360);
+        return OverwatchCm360Constant / (SafeDpi * SafeCm);
+    }
+
+    void Clamp()
+    {
+        MouseSensitivity = FMath::Clamp(MouseSensitivity, 0.01f, 100.0f);
+        ScopedSensitivityMultiplier = FMath::Clamp(ScopedSensitivityMultiplier, 0.1f, 2.0f);
+        VehicleLookSensitivityMultiplier = FMath::Clamp(VehicleLookSensitivityMultiplier, 0.1f, 2.0f);
+        FirstPersonFovDegrees = FMath::Clamp(FirstPersonFovDegrees, 80.0f, 120.0f);
+        ReferenceMouseDpi = FMath::Clamp(ReferenceMouseDpi, 100.0f, 64000.0f);
+        TargetCmPer360 = FMath::Clamp(TargetCmPer360, 1.0f, 500.0f);
+    }
+};
+

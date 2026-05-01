@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
@@ -15,6 +15,7 @@ public:
 private:
     FReply HandlePlaySandboxClicked();
     FReply HandleCombatTestClicked();
+    FReply HandleCustomGameClicked();
     FReply HandleSettingsClicked();
     FReply HandleCreditsClicked();
     FReply HandleQuitClicked();

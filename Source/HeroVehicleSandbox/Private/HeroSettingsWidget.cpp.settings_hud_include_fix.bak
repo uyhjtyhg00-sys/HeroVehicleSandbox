@@ -1,0 +1,343 @@
+#include "HeroSettingsWidget.h"
+
+#include "HeroCharacter.h"
+#include "HeroPlayerController.h"
+#include "HeroSettingsSaveGame.h"
+#include "Kismet/GameplayStatics.h"
+#include "Widgets/Input/SButton.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SScrollBox.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+
+void UHeroSettingsWidget::NativeConstruct()
+{
+    Super::NativeConstruct();
+    LoadSettings();
+}
+
+TSharedRef<SWidget> UHeroSettingsWidget::RebuildWidget()
+{
+    LoadSettings();
+
+    auto ParseFloat = [](const FText& Text, const float Fallback)
+    {
+        float Parsed = Fallback;
+        if (LexTryParseString(Parsed, *Text.ToString()))
+        {
+            return Parsed;
+        }
+        return Fallback;
+    };
+
+    auto MakeNumberRow =
+        [this, ParseFloat](
+            const FString& Label,
+            const FString& Hint,
+            TFunction<float()> Getter,
+            TFunction<void(float)> Setter,
+            const float MinValue,
+            const float MaxValue,
+            const float Step)
+        -> TSharedRef<SWidget>
+    {
+        return SNew(SHorizontalBox)
+
+            + SHorizontalBox::Slot()
+            .FillWidth(0.34f)
+            .VAlign(VAlign_Center)
+            .Padding(0.0f, 6.0f, 12.0f, 6.0f)
+            [
+                SNew(SVerticalBox)
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString(Label))
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString(Hint))
+                ]
+            ]
+
+            + SHorizontalBox::Slot()
+            .FillWidth(0.34f)
+            .Padding(4.0f, 6.0f)
+            [
+                SNew(SSpinBox<float>)
+                .MinValue(MinValue)
+                .MaxValue(MaxValue)
+                .Delta(Step)
+                .Value_Lambda([Getter]()
+                {
+                    return Getter();
+                })
+                .OnValueChanged_Lambda([Setter](const float Value)
+                {
+                    Setter(Value);
+                })
+                .OnValueCommitted_Lambda([Setter](const float Value, ETextCommit::Type)
+                {
+                    Setter(Value);
+                })
+            ]
+
+            + SHorizontalBox::Slot()
+            .FillWidth(0.32f)
+            .Padding(4.0f, 6.0f)
+            [
+                SNew(SEditableTextBox)
+                .SelectAllTextWhenFocused(true)
+                .RevertTextOnEscape(true)
+                .HintText(FText::FromString(TEXT("Type value")))
+                .Text_Lambda([Getter]()
+                {
+                    return FText::AsNumber(Getter());
+                })
+                .OnTextCommitted_Lambda([Getter, Setter, ParseFloat, MinValue, MaxValue](const FText& Text, ETextCommit::Type)
+                {
+                    const float Parsed = ParseFloat(Text, Getter());
+                    Setter(FMath::Clamp(Parsed, MinValue, MaxValue));
+                })
+            ];
+    };
+
+    return SNew(SBorder)
+        .Padding(36.0f)
+        [
+            SNew(SScrollBox)
+
+            + SScrollBox::Slot()
+            [
+                SNew(SVerticalBox)
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0.0f, 0.0f, 0.0f, 16.0f)
+                [
+                    SNew(STextBlock)
+                    .Text(FText::FromString(TEXT("SETTINGS")))
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0.0f, 0.0f, 0.0f, 18.0f)
+                [
+                    SNew(STextBlock)
+                    .Text_Lambda([this]()
+                    {
+                        return FText::FromString(FString::Printf(
+                            TEXT("Overwatch-style yaw 0.0066  |  cm/360 = 138600 / (DPI * Sens)  |  Current %.2f cm/360"),
+                            WorkingAimSettings.GetCmPer360()));
+                    })
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    MakeNumberRow(
+                        TEXT("Mouse Sensitivity"),
+                        TEXT("Runtime: degrees/count = Sens * 0.0066"),
+                        [this]() { return WorkingAimSettings.MouseSensitivity; },
+                        [this](const float V) { SetMouseSensitivity(V); },
+                        0.01f,
+                        100.0f,
+                        0.01f)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    MakeNumberRow(
+                        TEXT("DPI for cm/360 display"),
+                        TEXT("Does not change runtime rotation"),
+                        [this]() { return WorkingAimSettings.ReferenceMouseDpi; },
+                        [this](const float V) { WorkingAimSettings.ReferenceMouseDpi = FMath::Clamp(V, 100.0f, 64000.0f); },
+                        100.0f,
+                        64000.0f,
+                        50.0f)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    MakeNumberRow(
+                        TEXT("Scoped Multiplier"),
+                        TEXT("ADS multiplier"),
+                        [this]() { return WorkingAimSettings.ScopedSensitivityMultiplier; },
+                        [this](const float V) { WorkingAimSettings.ScopedSensitivityMultiplier = FMath::Clamp(V, 0.1f, 2.0f); },
+                        0.1f,
+                        2.0f,
+                        0.01f)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    MakeNumberRow(
+                        TEXT("Vehicle Look Multiplier"),
+                        TEXT("Vehicle mode mouse multiplier"),
+                        [this]() { return WorkingAimSettings.VehicleLookSensitivityMultiplier; },
+                        [this](const float V) { WorkingAimSettings.VehicleLookSensitivityMultiplier = FMath::Clamp(V, 0.1f, 2.0f); },
+                        0.1f,
+                        2.0f,
+                        0.01f)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                [
+                    MakeNumberRow(
+                        TEXT("First Person FOV"),
+                        TEXT("80-120 degrees"),
+                        [this]() { return WorkingAimSettings.FirstPersonFovDegrees; },
+                        [this](const float V) { SetFov(V); },
+                        80.0f,
+                        120.0f,
+                        1.0f)
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0.0f, 12.0f)
+                [
+                    SNew(SCheckBox)
+                    .IsChecked(WorkingAimSettings.bInvertMouseY ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
+                    .OnCheckStateChanged_Lambda([this](ECheckBoxState State)
+                    {
+                        WorkingAimSettings.bInvertMouseY = State == ECheckBoxState::Checked;
+                    })
+                    [
+                        SNew(STextBlock)
+                        .Text(FText::FromString(TEXT("Invert Mouse Y")))
+                    ]
+                ]
+
+                + SVerticalBox::Slot()
+                .AutoHeight()
+                .Padding(0.0f, 18.0f, 0.0f, 0.0f)
+                [
+                    SNew(SHorizontalBox)
+
+                    + SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .Padding(4.0f)
+                    [
+                        SNew(SButton)
+                        .Text(FText::FromString(TEXT("Apply")))
+                        .OnClicked_UObject(this, &UHeroSettingsWidget::HandleApplyClicked)
+                    ]
+
+                    + SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .Padding(4.0f)
+                    [
+                        SNew(SButton)
+                        .Text(FText::FromString(TEXT("Reset to Default")))
+                        .OnClicked_UObject(this, &UHeroSettingsWidget::HandleResetClicked)
+                    ]
+
+                    + SHorizontalBox::Slot()
+                    .AutoWidth()
+                    .Padding(4.0f)
+                    [
+                        SNew(SButton)
+                        .Text(FText::FromString(TEXT("Back")))
+                        .OnClicked_UObject(this, &UHeroSettingsWidget::HandleBackClicked)
+                    ]
+                ]
+            ]
+        ];
+}
+
+void UHeroSettingsWidget::SetMouseSensitivity(const float NewSensitivity)
+{
+    WorkingAimSettings.MouseSensitivity = FMath::Clamp(NewSensitivity, 0.01f, 100.0f);
+}
+
+float UHeroSettingsWidget::GetMouseSensitivity() const
+{
+    return WorkingAimSettings.MouseSensitivity;
+}
+
+void UHeroSettingsWidget::SetFov(const float NewFov)
+{
+    WorkingAimSettings.FirstPersonFovDegrees = FMath::Clamp(NewFov, 80.0f, 120.0f);
+}
+
+float UHeroSettingsWidget::GetFov() const
+{
+    return WorkingAimSettings.FirstPersonFovDegrees;
+}
+
+void UHeroSettingsWidget::ApplySettings()
+{
+    WorkingAimSettings.Clamp();
+    UHeroSettingsSaveGame* Save = Cast<UHeroSettingsSaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("HeroVehicleSettings"), 0));
+    if (!Save)
+    {
+        Save = Cast<UHeroSettingsSaveGame>(UGameplayStatics::CreateSaveGameObject(UHeroSettingsSaveGame::StaticClass()));
+    }
+
+    if (Save)
+    {
+        Save->AimSettings = WorkingAimSettings;
+        UGameplayStatics::SaveGameToSlot(Save, TEXT("HeroVehicleSettings"), 0);
+    }
+
+    if (AHeroCharacter* Hero = GetOwningPlayerPawn<AHeroCharacter>())
+    {
+        Hero->ApplyAimSettings(WorkingAimSettings);
+    }
+}
+
+void UHeroSettingsWidget::ResetToDefaults()
+{
+    WorkingAimSettings = FHeroAimSettings{};
+    ApplySettings();
+}
+
+void UHeroSettingsWidget::LoadSettings()
+{
+    if (UHeroSettingsSaveGame* Save = Cast<UHeroSettingsSaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("HeroVehicleSettings"), 0)))
+    {
+        WorkingAimSettings = Save->AimSettings;
+    }
+    WorkingAimSettings.Clamp();
+}
+
+FReply UHeroSettingsWidget::HandleApplyClicked()
+{
+    ApplySettings();
+    return FReply::Handled();
+}
+
+FReply UHeroSettingsWidget::HandleResetClicked()
+{
+    ResetToDefaults();
+    return FReply::Handled();
+}
+
+FReply UHeroSettingsWidget::HandleBackClicked()
+{
+    if (AHeroPlayerController* PC = GetOwningPlayer<AHeroPlayerController>())
+    {
+        if (PC->GetHeroHUD() && PC->GetHeroHUD()->IsInViewport())
+        {
+            PC->ShowHUD();
+        }
+        else
+        {
+            PC->ShowMainMenu();
+        }
+    }
+    return FReply::Handled();
+}

@@ -1,19 +1,24 @@
-﻿#include "HeroGameModeBase.h"
+#include "HeroGameModeBase.h"
 
 #include "EngineUtils.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/Pawn.h"
 #include "HeroAIController.h"
 #include "HeroBotCharacter.h"
 #include "HeroCharacter.h"
 #include "HeroControlPointActor.h"
+#include "HeroHealthComponent.h"
 #include "HeroObjectiveInterface.h"
 #include "HeroPayloadActor.h"
 #include "HeroPlayerController.h"
+#include "HeroTeamComponent.h"
 
 AHeroGameModeBase::AHeroGameModeBase()
 {
     PrimaryActorTick.bCanEverTick = true;
     DefaultPawnClass = AHeroCharacter::StaticClass();
     PlayerControllerClass = AHeroPlayerController::StaticClass();
+    BotCharacterClass = AHeroBotCharacter::StaticClass();
 }
 
 void AHeroGameModeBase::BeginPlay()
@@ -38,6 +43,94 @@ void AHeroGameModeBase::ApplyCustomGameSettings(const FHeroCustomGameSettings& N
 const FHeroCustomGameSettings& AHeroGameModeBase::GetCustomGameSettings() const
 {
     return CustomGameSettings;
+}
+
+void AHeroGameModeBase::StartSandboxMode()
+{
+    FHeroCustomGameSettings NewSettings = CustomGameSettings;
+    NewSettings.GameModeType = EHeroGameModeType::Sandbox;
+    NewSettings.bEnableBots = false;
+    ApplyCustomGameSettings(NewSettings);
+    ClearSpawnedBots();
+}
+
+void AHeroGameModeBase::StartCombatTestMode()
+{
+    FHeroCustomGameSettings NewSettings = CustomGameSettings;
+    NewSettings.GameModeType = EHeroGameModeType::TeamDeathmatch;
+    NewSettings.bEnableBots = true;
+    NewSettings.BotCountTeamA = 0;
+    NewSettings.BotCountTeamB = FMath::Max(3, NewSettings.BotCountTeamB);
+    ApplyCustomGameSettings(NewSettings);
+    SpawnTestBots(NewSettings.BotCountTeamB, NewSettings.BotCountTeamA);
+}
+
+void AHeroGameModeBase::StartCustomGameMode(const EHeroGameModeType ModeType, const int32 EnemyBotCount)
+{
+    FHeroCustomGameSettings NewSettings = CustomGameSettings;
+    NewSettings.GameModeType = ModeType;
+    NewSettings.bEnableBots = true;
+    NewSettings.BotCountTeamA = 0;
+    NewSettings.BotCountTeamB = FMath::Clamp(EnemyBotCount, 0, 12);
+    ApplyCustomGameSettings(NewSettings);
+    SpawnTestBots(NewSettings.BotCountTeamB, NewSettings.BotCountTeamA);
+}
+
+void AHeroGameModeBase::SpawnTestBots(const int32 TeamBCount, const int32 TeamACount)
+{
+    ClearSpawnedBots();
+
+    for (int32 Index = 0; Index < TeamBCount; ++Index)
+    {
+        const EHeroBotRole BotRole = Index % 5 == 0 ? EHeroBotRole::Tank : Index % 4 == 0 ? EHeroBotRole::Support : EHeroBotRole::Damage;
+        SpawnBot(EHeroTeam::TeamB, BotRole, GetBotSpawnLocation(Index, EHeroTeam::TeamB), FRotator(0.0f, 180.0f, 0.0f));
+    }
+
+    for (int32 Index = 0; Index < TeamACount; ++Index)
+    {
+        const EHeroBotRole BotRole = Index % 4 == 0 ? EHeroBotRole::Support : EHeroBotRole::Damage;
+        SpawnBot(EHeroTeam::TeamA, BotRole, GetBotSpawnLocation(Index, EHeroTeam::TeamA), FRotator::ZeroRotator);
+    }
+}
+
+void AHeroGameModeBase::ClearSpawnedBots()
+{
+    for (TWeakObjectPtr<AHeroBotCharacter>& BotPtr : SpawnedBots)
+    {
+        if (AHeroBotCharacter* Bot = BotPtr.Get())
+        {
+            Bot->Destroy();
+        }
+    }
+    SpawnedBots.Reset();
+}
+
+int32 AHeroGameModeBase::GetAliveBotCount() const
+{
+    int32 Count = 0;
+    for (const TWeakObjectPtr<AHeroBotCharacter>& BotPtr : SpawnedBots)
+    {
+        const AHeroBotCharacter* Bot = BotPtr.Get();
+        const UHeroHealthComponent* Health = Bot ? Bot->GetHealthComponent() : nullptr;
+        if (Bot && (!Health || !Health->IsDead()))
+        {
+            ++Count;
+        }
+    }
+    return Count;
+}
+
+int32 AHeroGameModeBase::GetTotalSpawnedBotCount() const
+{
+    int32 Count = 0;
+    for (const TWeakObjectPtr<AHeroBotCharacter>& BotPtr : SpawnedBots)
+    {
+        if (BotPtr.IsValid())
+        {
+            ++Count;
+        }
+    }
+    return Count;
 }
 
 AActor* AHeroGameModeBase::GetPrimaryObjectiveForTeam(const EHeroTeam Team) const
@@ -110,3 +203,55 @@ void AHeroGameModeBase::CachePrimaryObjectives()
         }
     }
 }
+
+void AHeroGameModeBase::SpawnBot(const EHeroTeam Team, const EHeroBotRole BotRole, const FVector& Location, const FRotator& Rotation)
+{
+    UWorld* World = GetWorld();
+    UClass* SpawnClass = BotCharacterClass ? BotCharacterClass.Get() : AHeroBotCharacter::StaticClass();
+    if (!World || !SpawnClass)
+    {
+        return;
+    }
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+    AHeroBotCharacter* Bot = World->SpawnActor<AHeroBotCharacter>(SpawnClass, Location, Rotation, SpawnParams);
+    if (!Bot)
+    {
+        return;
+    }
+
+    Bot->SetBotRole(BotRole);
+    if (UHeroTeamComponent* TeamComponent = Bot->GetTeamComponent())
+    {
+        TeamComponent->SetTeam(Team);
+    }
+    if (UHeroHealthComponent* Health = Bot->GetHealthComponent())
+    {
+        Health->ResetHealth();
+    }
+    SpawnedBots.Add(Bot);
+}
+
+FVector AHeroGameModeBase::GetBotSpawnLocation(const int32 Index, const EHeroTeam Team) const
+{
+    FVector Center = FVector::ZeroVector;
+    if (const AActor* Objective = GetPrimaryObjectiveForTeam(Team))
+    {
+        Center = Objective->GetActorLocation();
+    }
+    else if (const APlayerController* PC = GetWorld() ? GetWorld()->GetFirstPlayerController() : nullptr)
+    {
+        if (const APawn* Pawn = PC->GetPawn())
+        {
+            Center = Pawn->GetActorLocation();
+        }
+    }
+
+    const float Side = Team == EHeroTeam::TeamB ? 1.0f : -1.0f;
+    const float Row = static_cast<float>(Index / 4);
+    const float Column = static_cast<float>(Index % 4) - 1.5f;
+    return Center + FVector(950.0f * Side + Row * 180.0f * Side, Column * 260.0f, 120.0f);
+}
+
+

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
@@ -51,6 +51,9 @@ public:
     FText GetWeaponName() const;
 
     UFUNCTION(BlueprintCallable, Category="Hero|Weapon")
+    float GetWeaponHeat01() const;
+
+    UFUNCTION(BlueprintCallable, Category="Hero|Weapon")
     const FHeroWeaponConfig& GetCurrentWeaponConfig() const;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapons")
@@ -70,10 +73,15 @@ private:
     void FireProjectile(const FVector& Origin, const FVector& Direction, const FHeroWeaponConfig& Config);
     bool GetFireView(USceneComponent* FireOrigin, FVector& OutOrigin, FVector& OutDirection) const;
     FVector ApplySpread(const FVector& Direction, const FHeroWeaponConfig& Config) const;
+    void ApplyRecoil(const FHeroWeaponConfig& Config);
+    void NotifyLocalHit(float DamageAmount, bool bKilled);
 
 private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon", meta=(AllowPrivateAccess="true"))
     TSubclassOf<AHeroProjectile> ProjectileClass;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Hero|Weapon", meta=(AllowPrivateAccess="true"))
+    bool bDrawDebugFireTrace = false;
 
     EHeroPlayerMode PlayerMode = EHeroPlayerMode::Human;
     FHeroWeaponCore HumanWeaponCore;
@@ -81,6 +89,7 @@ private:
     bool bWantsToFire = false;
     bool bAiming = false;
     float FireCooldownSeconds = 0.0f;
+    float WeaponHeat01 = 0.0f;
 
     UPROPERTY(Transient)
     TObjectPtr<USceneComponent> CachedFireOrigin;

@@ -1,0 +1,250 @@
+#include "HeroHUDWidget.h"
+
+#include "Styling/CoreStyle.h"
+#include "Widgets/Layout/SBorder.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/SOverlay.h"
+#include "Widgets/SBoxPanel.h"
+#include "Widgets/Text/STextBlock.h"
+
+namespace
+{
+    FSlateFontInfo HeroFont(const int32 Size, const FName Typeface = TEXT("Regular"))
+    {
+        return FCoreStyle::GetDefaultFontStyle(Typeface, Size);
+    }
+
+    FLinearColor PanelColor()
+    {
+        return FLinearColor(0.015f, 0.025f, 0.055f, 0.78f);
+    }
+
+    FLinearColor AccentColor()
+    {
+        return FLinearColor(0.0f, 0.72f, 1.0f, 1.0f);
+    }
+}
+
+TSharedRef<SWidget> UHeroHUDWidget::RebuildWidget()
+{
+    return SNew(SOverlay)
+        + SOverlay::Slot()
+        .HAlign(HAlign_Fill)
+        .VAlign(VAlign_Top)
+        [
+            SNew(SBorder)
+            .Padding(FMargin(26.0f, 14.0f))
+            .BorderBackgroundColor(FLinearColor(0.01f, 0.015f, 0.035f, 0.72f))
+            [
+                SNew(SHorizontalBox)
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                [SAssignNew(ModeText, STextBlock).Text(FText::FromString(TEXT("SANDBOX"))).Font(HeroFont(22, TEXT("Bold"))).ColorAndOpacity(AccentColor())]
+                + SHorizontalBox::Slot().FillWidth(1.0f).HAlign(HAlign_Center).VAlign(VAlign_Center)
+                [SAssignNew(ObjectiveText, STextBlock).Text(FText::FromString(TEXT("Objective inactive"))).Font(HeroFont(20, TEXT("Bold"))).ColorAndOpacity(FLinearColor::White)]
+                + SHorizontalBox::Slot().AutoWidth().VAlign(VAlign_Center)
+                [SAssignNew(BotText, STextBlock).Text(FText::FromString(TEXT("BOTS 0/0"))).Font(HeroFont(18, TEXT("Bold"))).ColorAndOpacity(FLinearColor(0.9f, 0.95f, 1.0f, 1.0f))]
+            ]
+        ]
+        + SOverlay::Slot()
+        .HAlign(HAlign_Center)
+        .VAlign(VAlign_Center)
+        [
+            SNew(SOverlay)
+            + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center)
+            [
+                SAssignNew(CrosshairText, STextBlock)
+                .Text(FText::FromString(TEXT("+")))
+                .Font(HeroFont(38, TEXT("Bold")))
+                .ColorAndOpacity(FLinearColor(0.76f, 1.0f, 0.82f, 0.98f))
+                .ShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.75f))
+                .ShadowOffset(FVector2D(1.0f, 1.0f))
+            ]
+            + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center).Padding(0.0f, 44.0f, 0.0f, 0.0f)
+            [
+                SAssignNew(HitMarkerText, STextBlock)
+                .Text(FText::FromString(TEXT("HIT")))
+                .Font(HeroFont(18, TEXT("Bold")))
+                .ColorAndOpacity(FLinearColor(1.0f, 0.92f, 0.35f, 1.0f))
+                .Visibility(EVisibility::Hidden)
+            ]
+            + SOverlay::Slot().HAlign(HAlign_Center).VAlign(VAlign_Center).Padding(0.0f, 76.0f, 0.0f, 0.0f)
+            [
+                SAssignNew(DamageText, STextBlock)
+                .Text(FText::FromString(TEXT("34")))
+                .Font(HeroFont(16, TEXT("Bold")))
+                .ColorAndOpacity(FLinearColor(1.0f, 0.82f, 0.32f, 1.0f))
+                .Visibility(EVisibility::Hidden)
+            ]
+        ]
+        + SOverlay::Slot()
+        .HAlign(HAlign_Left)
+        .VAlign(VAlign_Bottom)
+        .Padding(28.0f)
+        [
+            SNew(SBorder)
+            .Padding(FMargin(18.0f, 14.0f))
+            .BorderBackgroundColor(PanelColor())
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight()[SAssignNew(HealthText, STextBlock).Text(FText::FromString(TEXT("HEALTH 200 / 200"))).Font(HeroFont(28, TEXT("Bold"))).ColorAndOpacity(FLinearColor::White)]
+                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 6.0f, 0.0f, 0.0f)[SAssignNew(VehicleText, STextBlock).Text(FText::FromString(TEXT("Q: Vehicle Mode | E: Interact | Ctrl/C: Crouch"))).Font(HeroFont(14)).ColorAndOpacity(FLinearColor(0.75f, 0.86f, 1.0f, 1.0f))]
+            ]
+        ]
+        + SOverlay::Slot()
+        .HAlign(HAlign_Right)
+        .VAlign(VAlign_Bottom)
+        .Padding(28.0f)
+        [
+            SNew(SBorder)
+            .Padding(FMargin(18.0f, 14.0f))
+            .BorderBackgroundColor(PanelColor())
+            [
+                SNew(SVerticalBox)
+                + SVerticalBox::Slot().AutoHeight()[SAssignNew(WeaponText, STextBlock).Text(FText::FromString(TEXT("PULSE RIFLE"))).Font(HeroFont(19, TEXT("Bold"))).ColorAndOpacity(AccentColor())]
+                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 8.0f, 0.0f, 0.0f)[SAssignNew(AmmoText, STextBlock).Text(FText::FromString(TEXT("30 / 120"))).Font(HeroFont(34, TEXT("Bold"))).ColorAndOpacity(FLinearColor::White)]
+                + SVerticalBox::Slot().AutoHeight().Padding(0.0f, 4.0f, 0.0f, 0.0f)[SAssignNew(HeatText, STextBlock).Text(FText::FromString(TEXT("HEAT 0%"))).Font(HeroFont(13)).ColorAndOpacity(FLinearColor(0.74f, 0.84f, 0.95f, 1.0f))]
+            ]
+        ];
+}
+
+void UHeroHUDWidget::NativeTick(const FGeometry& MyGeometry, const float InDeltaTime)
+{
+    Super::NativeTick(MyGeometry, InDeltaTime);
+
+    HitMarkerTimer = FMath::Max(0.0f, HitMarkerTimer - InDeltaTime);
+    DamageTextTimer = FMath::Max(0.0f, DamageTextTimer - InDeltaTime);
+
+    if (HitMarkerText)
+    {
+        HitMarkerText->SetVisibility(HitMarkerTimer > 0.0f ? EVisibility::Visible : EVisibility::Hidden);
+    }
+    if (DamageText)
+    {
+        DamageText->SetVisibility(DamageTextTimer > 0.0f ? EVisibility::Visible : EVisibility::Hidden);
+    }
+}
+
+void UHeroHUDWidget::SetPlayerMode(const EHeroPlayerMode InMode)
+{
+    PlayerMode = InMode;
+    RefreshModeText();
+}
+
+void UHeroHUDWidget::SetHealth(const float Health, const float MaxHealth)
+{
+    if (HealthText)
+    {
+        const float Ratio = MaxHealth > KINDA_SMALL_NUMBER ? Health / MaxHealth : 0.0f;
+        const TCHAR* State = Ratio <= 0.25f ? TEXT("CRITICAL") : TEXT("HEALTH");
+        HealthText->SetText(FText::FromString(FString::Printf(TEXT("%s %.0f / %.0f"), State, Health, MaxHealth)));
+    }
+}
+
+void UHeroHUDWidget::SetAmmo(const int32 AmmoInMagazine, const int32 ReserveAmmo)
+{
+    if (AmmoText)
+    {
+        AmmoText->SetText(FText::FromString(FString::Printf(TEXT("%d / %d"), AmmoInMagazine, ReserveAmmo)));
+    }
+}
+
+void UHeroHUDWidget::SetReloading(const bool bReloading)
+{
+    if (AmmoText && bReloading)
+    {
+        AmmoText->SetText(FText::FromString(TEXT("RELOADING")));
+    }
+}
+
+void UHeroHUDWidget::SetWeaponName(const FText& WeaponName)
+{
+    if (WeaponText)
+    {
+        WeaponText->SetText(WeaponName);
+    }
+}
+
+void UHeroHUDWidget::SetWeaponHeat(const float Heat01)
+{
+    if (HeatText)
+    {
+        HeatText->SetText(FText::FromString(FString::Printf(TEXT("HEAT %.0f%%"), FMath::Clamp(Heat01, 0.0f, 1.0f) * 100.0f)));
+    }
+}
+
+void UHeroHUDWidget::SetVehicleHealth(const float Health, const float MaxHealth)
+{
+    if (VehicleText && PlayerMode != EHeroPlayerMode::Vehicle)
+    {
+        VehicleText->SetText(FText::FromString(FString::Printf(TEXT("Q: Vehicle Mode | Armor %.0f / %.0f | Ctrl/C: Crouch"), Health, MaxHealth)));
+    }
+}
+
+void UHeroHUDWidget::SetVehicleSpeed(const float SpeedKmh)
+{
+    if (VehicleText && PlayerMode == EHeroPlayerMode::Vehicle)
+    {
+        VehicleText->SetText(FText::FromString(FString::Printf(TEXT("VEHICLE %.0f km/h | Cannon ready"), SpeedKmh)));
+    }
+}
+
+void UHeroHUDWidget::SetCrosshairVisible(const bool bVisible)
+{
+    if (CrosshairText)
+    {
+        CrosshairText->SetVisibility(bVisible ? EVisibility::Visible : EVisibility::Hidden);
+    }
+}
+
+void UHeroHUDWidget::SetObjectiveStatus(const EHeroGameModeType GameMode, const EHeroTeam Team, const EHeroObjectiveState ObjectiveState, const float ObjectiveProgress01, const bool bContested)
+{
+    if (ObjectiveText)
+    {
+        ObjectiveText->SetText(FText::FromString(BuildObjectiveString(GameMode, Team, ObjectiveState, ObjectiveProgress01, bContested)));
+    }
+}
+
+void UHeroHUDWidget::SetBotStatus(const int32 AliveBots, const int32 TotalBots)
+{
+    if (BotText)
+    {
+        BotText->SetText(FText::FromString(FString::Printf(TEXT("BOTS %d/%d"), AliveBots, TotalBots)));
+    }
+}
+
+void UHeroHUDWidget::NotifyHitMarker(const float DamageAmount, const bool bKilled)
+{
+    HitMarkerTimer = bKilled ? 0.55f : 0.28f;
+    DamageTextTimer = 0.55f;
+
+    if (HitMarkerText)
+    {
+        HitMarkerText->SetText(FText::FromString(bKilled ? TEXT("ELIMINATED") : TEXT("HIT")));
+    }
+    if (DamageText)
+    {
+        DamageText->SetText(FText::FromString(FString::Printf(TEXT("%.0f"), DamageAmount)));
+    }
+}
+
+void UHeroHUDWidget::RefreshModeText()
+{
+    if (ModeText)
+    {
+        ModeText->SetText(PlayerMode == EHeroPlayerMode::Vehicle ? FText::FromString(TEXT("VEHICLE MODE")) : FText::FromString(TEXT("HERO MODE")));
+    }
+
+    if (CrosshairText)
+    {
+        CrosshairText->SetText(PlayerMode == EHeroPlayerMode::Vehicle ? FText::FromString(TEXT("<+>")) : FText::FromString(TEXT("+")));
+    }
+}
+
+FString UHeroHUDWidget::BuildObjectiveString(const EHeroGameModeType GameMode, const EHeroTeam Team, const EHeroObjectiveState ObjectiveState, const float ObjectiveProgress01, const bool bContested) const
+{
+    const TCHAR* ModeName = GameMode == EHeroGameModeType::Escort ? TEXT("ESCORT") : GameMode == EHeroGameModeType::Control ? TEXT("CONTROL") : GameMode == EHeroGameModeType::TeamDeathmatch ? TEXT("TDM") : TEXT("SANDBOX");
+    const TCHAR* TeamName = Team == EHeroTeam::TeamA ? TEXT("TEAM A") : Team == EHeroTeam::TeamB ? TEXT("TEAM B") : TEXT("NO TEAM");
+    const TCHAR* StateName = bContested || ObjectiveState == EHeroObjectiveState::Contested ? TEXT("CONTESTED") : ObjectiveState == EHeroObjectiveState::Captured ? TEXT("CAPTURED") : ObjectiveState == EHeroObjectiveState::Completed ? TEXT("COMPLETE") : ObjectiveState == EHeroObjectiveState::Active ? TEXT("ACTIVE") : TEXT("READY");
+    return FString::Printf(TEXT("%s  |  %s  |  %s  |  %.0f%%"), ModeName, TeamName, StateName, FMath::Clamp(ObjectiveProgress01, 0.0f, 1.0f) * 100.0f);
+}
+
