@@ -1,4 +1,4 @@
-﻿# HeroVehicleSandbox
+# HeroVehicleSandbox
 
 HeroVehicleSandbox is a UE 5.7 C++ foundation project for a Hyper-Tactical Hero Vehicle Sandbox.
 
@@ -9,7 +9,6 @@ It is derived from the final RaceCore vehicle sandbox baseline, but it is a new 
 Current release: 0.1.2
 
 0.1.2 is the combat UX and input-fix release. It keeps the RaceCore vehicle baseline intact while stabilizing the first-person sandbox controls, Overwatch-style mouse sensitivity, mouse Y behavior, weapon recoil direction, aim zoom, HUD readability, and settings input workflow.
-
 ## Design Goal
 
 The game direction is a team-based hero vehicle shooter:
@@ -217,30 +216,30 @@ MVP-hero-fps-foundation
 
 ### v0.1.2 - Combat UX / Mouse / Zoom / HUD Fix
 
-- Fixed Sandbox mode input issue by restoring legacy input classes.
-- Fixed Overwatch-style mouse sensitivity formula using yaw `0.0066`.
+- Fixed Sandbox mode input by restoring the legacy input classes used by `BindAxis` / `BindAction`.
+- Fixed Overwatch-style mouse sensitivity using yaw `0.0066`.
 - Fixed Mouse Y direction behavior.
 - Separated mouse inversion from weapon recoil.
-- Fixed recoil direction so recoil always kicks upward regardless of invert setting.
+- Fixed recoil direction so weapon recoil always kicks upward regardless of invert setting.
 - Added working aim/zoom FOV transition.
-- Hid distracting top debug status banner.
+- Hid the distracting top debug status banner.
 - Improved settings UI with direct numeric input fields.
 - Added function-purpose comments to patched gameplay/UI code.
 - Added `Docs/FunctionCommentPolicy.md` for future patch consistency.
 
-### 0.1.1
+### v0.1.1 - First Person Startup / HUD / Menu Fix
 
-- Fixed sandbox startup so `Play Sandbox` and `Combat Test` reliably enter the first-person hero pawn flow.
-- Improved viewport mouse capture and game input handoff for first-person play.
-- Increased crosshair readability for live gameplay.
-- Removed disabled main menu options from the first visible menu flow.
-- Verified `HeroVehicleSandboxEditor Win64 Development` build succeeds.
+- Fixed first-person startup possession flow.
+- Improved HUD crosshair visibility.
+- Fixed menu button availability.
+- Improved game input mode transition from menu to play.
 
-### 0.1.0
+### v0.1.0 - Initial HeroVehicleSandbox Foundation
 
-- Initialized HeroVehicleSandbox from the RaceCore vehicle sandbox baseline.
-- Added Human Mode, Vehicle Mode foundation, weapon, health, HUD, settings, objective, AI, and LegacyVehicle scaffolding.
-
+- Created UE5.7 C++ HeroVehicleSandbox project.
+- Added first-person hero character foundation.
+- Added weapon component, projectile, HUD, bot, and objective groundwork.
+- Imported legacy vehicle physics baseline from RaceCore.
 ## Next Work
 
 - Add a real first playable map.
