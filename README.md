@@ -6,9 +6,9 @@ It is derived from the final RaceCore vehicle sandbox baseline, but it is a new 
 
 ## Version
 
-Current release: `0.1.1`
+Current release: 0.1.2
 
-`0.1.1` is the second foundation release. It keeps the RaceCore vehicle baseline intact while improving the first-person sandbox startup flow, HUD readability, and main menu usability.
+0.1.2 is the combat UX and input-fix release. It keeps the RaceCore vehicle baseline intact while stabilizing the first-person sandbox controls, Overwatch-style mouse sensitivity, mouse Y behavior, weapon recoil direction, aim zoom, HUD readability, and settings input workflow.
 
 ## Design Goal
 
