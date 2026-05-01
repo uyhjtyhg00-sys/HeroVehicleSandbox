@@ -215,6 +215,19 @@ MVP-hero-fps-foundation
 
 ## Release History
 
+### v0.1.2 - Combat UX / Mouse / Zoom / HUD Fix
+
+- Fixed Sandbox mode input issue by restoring legacy input classes.
+- Fixed Overwatch-style mouse sensitivity formula using yaw `0.0066`.
+- Fixed Mouse Y direction behavior.
+- Separated mouse inversion from weapon recoil.
+- Fixed recoil direction so recoil always kicks upward regardless of invert setting.
+- Added working aim/zoom FOV transition.
+- Hid distracting top debug status banner.
+- Improved settings UI with direct numeric input fields.
+- Added function-purpose comments to patched gameplay/UI code.
+- Added `Docs/FunctionCommentPolicy.md` for future patch consistency.
+
 ### 0.1.1
 
 - Fixed sandbox startup so `Play Sandbox` and `Combat Test` reliably enter the first-person hero pawn flow.
