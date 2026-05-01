@@ -4,6 +4,12 @@ HeroVehicleSandbox is a UE 5.7 C++ foundation project for a Hyper-Tactical Hero 
 
 It is derived from the final RaceCore vehicle sandbox baseline, but it is a new repository and a new project. The original `D:\UnrealProject\RaceCore` project is not modified by this work.
 
+## Version
+
+Current release: `0.1.1`
+
+`0.1.1` is the second foundation release. It keeps the RaceCore vehicle baseline intact while improving the first-person sandbox startup flow, HUD readability, and main menu usability.
+
 ## Design Goal
 
 The game direction is a team-based hero vehicle shooter:
@@ -206,6 +212,21 @@ Initial tag:
 ```text
 MVP-hero-fps-foundation
 ```
+
+## Release History
+
+### 0.1.1
+
+- Fixed sandbox startup so `Play Sandbox` and `Combat Test` reliably enter the first-person hero pawn flow.
+- Improved viewport mouse capture and game input handoff for first-person play.
+- Increased crosshair readability for live gameplay.
+- Removed disabled main menu options from the first visible menu flow.
+- Verified `HeroVehicleSandboxEditor Win64 Development` build succeeds.
+
+### 0.1.0
+
+- Initialized HeroVehicleSandbox from the RaceCore vehicle sandbox baseline.
+- Added Human Mode, Vehicle Mode foundation, weapon, health, HUD, settings, objective, AI, and LegacyVehicle scaffolding.
 
 ## Next Work
 
