@@ -8,6 +8,7 @@ class UHeroHUDWidget;
 class UHeroMainMenuWidget;
 class UHeroSettingsWidget;
 class UUserWidget;
+class AHeroCharacter;
 
 UCLASS()
 class HEROVEHICLESANDBOX_API AHeroPlayerController : public APlayerController
@@ -36,11 +37,15 @@ public:
 
 private:
     void ClearMenu();
+    void EnsureHeroPawnPossessed();
     void SetMenuInputMode();
     void SetGameInputMode();
     void UpdateHUDFromPawn();
 
 private:
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Hero|Player", meta=(AllowPrivateAccess="true"))
+    TSubclassOf<AHeroCharacter> HeroCharacterClass;
+
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Hero|UI", meta=(AllowPrivateAccess="true"))
     TSubclassOf<UHeroHUDWidget> HUDWidgetClass;
 

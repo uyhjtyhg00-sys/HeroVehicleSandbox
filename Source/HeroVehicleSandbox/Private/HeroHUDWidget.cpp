@@ -1,5 +1,6 @@
 ﻿#include "HeroHUDWidget.h"
 
+#include "Styling/CoreStyle.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SBoxPanel.h"
@@ -14,6 +15,10 @@ TSharedRef<SWidget> UHeroHUDWidget::RebuildWidget()
         [
             SAssignNew(CrosshairText, STextBlock)
             .Text(FText::FromString(TEXT("+")))
+            .Font(FCoreStyle::GetDefaultFontStyle(TEXT("Bold"), 36))
+            .ColorAndOpacity(FLinearColor(0.86f, 0.98f, 1.0f, 0.95f))
+            .ShadowColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.65f))
+            .ShadowOffset(FVector2D(1.0f, 1.0f))
         ]
         + SOverlay::Slot()
         .HAlign(HAlign_Left)

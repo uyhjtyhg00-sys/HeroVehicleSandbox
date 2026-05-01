@@ -14,6 +14,11 @@ public:
 
 private:
     FReply HandlePlaySandboxClicked();
+    FReply HandleCombatTestClicked();
     FReply HandleSettingsClicked();
+    FReply HandleCreditsClicked();
     FReply HandleQuitClicked();
+
+private:
+    TSharedPtr<class STextBlock> StatusText;
 };

@@ -10,15 +10,19 @@
 #include "HeroTeamComponent.h"
 #include "HeroVehicleModeComponent.h"
 #include "HeroWeaponComponent.h"
+#include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 
 AHeroPlayerController::AHeroPlayerController()
 {
     bShowMouseCursor = true;
+    HeroCharacterClass = AHeroCharacter::StaticClass();
 }
 
 void AHeroPlayerController::BeginPlay()
 {
     Super::BeginPlay();
+    EnsureHeroPawnPossessed();
     ShowMainMenu();
 }
 
@@ -69,6 +73,7 @@ void AHeroPlayerController::ShowSettingsMenu()
 
 void AHeroPlayerController::StartSandboxFromMenu()
 {
+    EnsureHeroPawnPossessed();
     ShowHUD();
 }
 
@@ -86,6 +91,62 @@ void AHeroPlayerController::ClearMenu()
     }
 }
 
+void AHeroPlayerController::EnsureHeroPawnPossessed()
+{
+    if (AHeroCharacter* CurrentHero = Cast<AHeroCharacter>(GetPawn()))
+    {
+        SetViewTarget(CurrentHero);
+        return;
+    }
+
+    UWorld* World = GetWorld();
+    UClass* PawnClass = HeroCharacterClass ? HeroCharacterClass.Get() : AHeroCharacter::StaticClass();
+    if (!World || !PawnClass)
+    {
+        return;
+    }
+
+    APawn* PreviousPawn = GetPawn();
+    FVector HeroSpawnLocation = FVector(0.0f, 0.0f, 120.0f);
+    FRotator SpawnRotation = FRotator::ZeroRotator;
+
+    if (PreviousPawn)
+    {
+        HeroSpawnLocation = PreviousPawn->GetActorLocation();
+        SpawnRotation = PreviousPawn->GetActorRotation();
+    }
+    else
+    {
+        FVector ViewLocation = FVector::ZeroVector;
+        FRotator ViewRotation = FRotator::ZeroRotator;
+        GetPlayerViewPoint(ViewLocation, ViewRotation);
+        if (!ViewLocation.IsNearlyZero())
+        {
+            HeroSpawnLocation = ViewLocation;
+            SpawnRotation = ViewRotation;
+        }
+    }
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.Owner = this;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+    AHeroCharacter* NewHero = World->SpawnActor<AHeroCharacter>(PawnClass, HeroSpawnLocation, FRotator(0.0f, SpawnRotation.Yaw, 0.0f), SpawnParams);
+    if (!NewHero)
+    {
+        return;
+    }
+
+    Possess(NewHero);
+    SetControlRotation(FRotator(0.0f, SpawnRotation.Yaw, 0.0f));
+    SetViewTarget(NewHero);
+
+    if (PreviousPawn && PreviousPawn != NewHero)
+    {
+        PreviousPawn->Destroy();
+    }
+}
+
 void AHeroPlayerController::SetMenuInputMode()
 {
     bShowMouseCursor = true;
@@ -99,10 +160,13 @@ void AHeroPlayerController::SetMenuInputMode()
 void AHeroPlayerController::SetGameInputMode()
 {
     bShowMouseCursor = false;
+    bEnableClickEvents = false;
+    bEnableMouseOverEvents = false;
     SetIgnoreMoveInput(false);
     SetIgnoreLookInput(false);
     FInputModeGameOnly InputMode;
     SetInputMode(InputMode);
+    FlushPressedKeys();
 }
 
 void AHeroPlayerController::UpdateHUDFromPawn()
